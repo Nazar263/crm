@@ -1,0 +1,138 @@
+/* =============================================
+   finance.js — Транзакції / Cashflow
+   ============================================= */
+
+const Finance = {
+  render() {
+    this.renderSummary();
+    this.renderTable();
+  },
+
+  renderSummary() {
+    const transactions = Storage.getTransactions();
+    const balance = Calc.financeBalance(transactions);
+    document.getElementById('finance-balance').textContent = Utils.formatMoney(balance);
+  },
+
+  getFiltered() {
+    const transactions = Storage.getTransactions();
+    const search = document.getElementById('finance-search').value.toLowerCase();
+    const typeFilter = document.getElementById('finance-filter-type').value;
+
+    return transactions
+      .filter(t => {
+        const matchSearch = (t.description || '').toLowerCase().includes(search) ||
+          (t.category || '').toLowerCase().includes(search) ||
+          (t.bank || '').toLowerCase().includes(search);
+        const matchType = !typeFilter || t.type === typeFilter;
+        return matchSearch && matchType;
+      })
+      .sort((a, b) => new Date(b.date || b.plannedDate) - new Date(a.date || a.plannedDate));
+  },
+
+  renderTable() {
+    const tbody = document.getElementById('tbody-finance');
+    const filtered = this.getFiltered();
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="7"><div class="empty-state"><span>Немає транзакцій</span><small>Додайте дохід або витрату</small></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(t => {
+      const amountColor = t.type === 'income' ? 'var(--accent-green)' : 'var(--accent-orange)';
+      const sign = t.type === 'income' ? '+' : '−';
+      return `
+        <tr>
+          <td>${financeTypeBadge(t.type)}</td>
+          <td style="color:${amountColor};font-weight:600">${sign}${Utils.formatMoney(t.amount)}</td>
+          <td>${Utils.escHtml(t.bank || '—')}</td>
+          <td>${Utils.escHtml(t.category || '—')}</td>
+          <td>${Utils.escHtml(t.description || '—')}</td>
+          <td>${Utils.formatDate(t.date || t.plannedDate)}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn-icon btn-icon--edit" title="Редагувати" onclick="Finance.openEdit('${t.id}')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2"/></svg>
+              </button>
+              <button class="btn-icon btn-icon--danger" title="Видалити" onclick="Finance.delete('${t.id}')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2"/><path d="M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2"/><path d="M9 6V4h6v2" stroke="currentColor" stroke-width="2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  },
+
+  openCreate(type = 'income') {
+    document.getElementById('transaction-id').value = '';
+    document.getElementById('transaction-type').value = type;
+    document.getElementById('transaction-amount').value = '';
+    document.getElementById('transaction-bank').value = '';
+    document.getElementById('transaction-category').value = '';
+    document.getElementById('transaction-description').value = '';
+    document.getElementById('transaction-date').value = Utils.today();
+    document.getElementById('modal-finance-title').textContent = type === 'income' ? 'Новий дохід' : 'Нова витрата';
+    openModal('modal-finance');
+  },
+
+  openEdit(id) {
+    const t = Storage.getTransactions().find(x => x.id === id);
+    if (!t) return;
+    document.getElementById('transaction-id').value = t.id;
+    document.getElementById('transaction-type').value = t.type;
+    document.getElementById('transaction-amount').value = t.amount || '';
+    document.getElementById('transaction-bank').value = t.bank || '';
+    document.getElementById('transaction-category').value = t.category || '';
+    document.getElementById('transaction-description').value = t.description || '';
+    document.getElementById('transaction-date').value = t.date || t.plannedDate || '';
+    document.getElementById('modal-finance-title').textContent = 'Редагувати транзакцію';
+    openModal('modal-finance');
+  },
+
+  save() {
+    const id = document.getElementById('transaction-id').value;
+    const type = document.getElementById('transaction-type').value;
+    const amount = Number(document.getElementById('transaction-amount').value) || 0;
+    const bank = document.getElementById('transaction-bank').value.trim();
+    const category = document.getElementById('transaction-category').value.trim();
+    const description = document.getElementById('transaction-description').value.trim();
+    const date = document.getElementById('transaction-date').value;
+
+    if (!amount) { showToast('Введіть суму', 'error'); return; }
+
+    const transactions = Storage.getTransactions();
+    const raw = { type, amount, bank, category, description, date, status: 'done' };
+
+    if (id) {
+      const idx = transactions.findIndex(t => t.id === id);
+      if (idx >= 0) {
+        transactions[idx] = { ...transactions[idx], ...raw };
+        showToast('Транзакцію оновлено');
+      }
+    } else {
+      transactions.push({ id: Storage.generateId(), ...raw });
+      showToast('Транзакцію додано');
+    }
+
+    Storage.saveTransactions(transactions);
+    closeModal('modal-finance');
+    this.render();
+    Dashboard.render();
+  },
+
+  delete(id) {
+    showConfirm('Видалити транзакцію?', 'Транзакція буде видалена безповоротно.', () => {
+      Storage.saveTransactions(Storage.getTransactions().filter(t => t.id !== id));
+      this.render();
+      Dashboard.render();
+      showToast('Транзакцію видалено');
+    });
+  },
+};
+
+document.getElementById('btn-add-income').addEventListener('click', () => Finance.openCreate('income'));
+document.getElementById('btn-add-expense').addEventListener('click', () => Finance.openCreate('expense'));
+document.getElementById('btn-save-finance').addEventListener('click', () => Finance.save());
+document.getElementById('finance-search').addEventListener('input', () => Finance.renderTable());
+document.getElementById('finance-filter-type').addEventListener('change', () => Finance.renderTable());
