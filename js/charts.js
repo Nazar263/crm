@@ -40,7 +40,7 @@ const Charts = {
     completed.forEach(p => {
       const key = Utils.getMonthKey(Calc.projectEndDate(p));
       if (key && monthsData[key]) {
-        monthsData[key].income += Calc.project(p).myIncome;
+        monthsData[key].income += Calc.project(p).projectProfit;
         monthsData[key].count += 1;
       }
     });
@@ -118,6 +118,44 @@ const Charts = {
       options: {
         ...defaults,
         plugins: { legend: { display: true, labels: { color: '#8b90a7', font: { size: 10 } } } },
+      },
+    });
+  },
+
+  renderBankBalances(canvasId, instanceKey) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+
+    const balances = Calc.bankBalances();
+    const labels = Banks.list.map(b => b.label);
+    const data = Banks.list.map(b => balances[b.id] || 0);
+    const defaults = this.chartDefaults();
+
+    this.destroy(instanceKey);
+    const ctx = el.getContext('2d');
+    this.instances[instanceKey] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Баланс',
+          data,
+          backgroundColor: Banks.list.map(b => b.chartColor),
+          borderColor: Banks.list.map(b => b.borderColor),
+          borderWidth: 1,
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        ...defaults,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${Utils.formatMoney(ctx.parsed.y)}`,
+            },
+          },
+        },
       },
     });
   },
@@ -272,7 +310,7 @@ const Charts = {
     const transactions = Storage.getTransactions();
     this.renderProjects(completed);
     this.renderFinance(transactions);
-    this.renderDebts('chart-debts', 'debts');
+    this.renderBankBalances('chart-banks', 'banks');
     this.renderSavings('chart-savings-goals', 'savingsGoals');
     this.renderSavingsSummary('chart-savings-summary', 'savingsSummary');
     this.renderSources();

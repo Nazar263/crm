@@ -21,8 +21,8 @@ const Savings = {
 
     return Storage.getSavings()
       .filter(s => {
-        return (s.name || '').toLowerCase().includes(search) ||
-          (s.bank || '').toLowerCase().includes(search);
+        const bankLabel = Banks.label(Banks.normalize(s.bank) || s.bank).toLowerCase();
+        return (s.name || '').toLowerCase().includes(search) || bankLabel.includes(search);
       })
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   },
@@ -38,11 +38,11 @@ const Savings = {
 
     tbody.innerHTML = filtered.map(s => {
       const pct = Calc.savingsProgress(s.amount, s.goal);
-      const label = s.name || s.bank || '—';
+      const label = s.name || Banks.label(s.bank) || '—';
       return `
         <tr>
           <td>${Utils.escHtml(label)}</td>
-          <td>${Utils.escHtml(s.bank || '—')}</td>
+          <td>${bankBadge(s.bank)}</td>
           <td style="color:var(--accent-green);font-weight:600">${Utils.formatMoney(s.amount)}</td>
           <td>${Utils.formatMoney(s.goal)}</td>
           <td>
@@ -69,7 +69,7 @@ const Savings = {
   openCreate() {
     document.getElementById('saving-id').value = '';
     document.getElementById('saving-name').value = '';
-    document.getElementById('saving-bank').value = '';
+    Banks.populateSelect('saving-bank');
     document.getElementById('saving-amount').value = '';
     document.getElementById('saving-goal').value = '';
     document.getElementById('saving-date').value = Utils.today();
@@ -82,7 +82,7 @@ const Savings = {
     if (!s) return;
     document.getElementById('saving-id').value = s.id;
     document.getElementById('saving-name').value = s.name || '';
-    document.getElementById('saving-bank').value = s.bank || '';
+    Banks.populateSelect('saving-bank', s.bank || '');
     document.getElementById('saving-amount').value = s.amount || '';
     document.getElementById('saving-goal').value = s.goal || '';
     document.getElementById('saving-date').value = s.date || '';
@@ -93,12 +93,12 @@ const Savings = {
   save() {
     const id = document.getElementById('saving-id').value;
     const name = document.getElementById('saving-name').value.trim();
-    const bank = document.getElementById('saving-bank').value.trim();
+    const bank = document.getElementById('saving-bank').value;
     const amount = Number(document.getElementById('saving-amount').value) || 0;
     const goal = Number(document.getElementById('saving-goal').value) || 0;
     const date = document.getElementById('saving-date').value;
 
-    if (!name && !bank) { showToast('Введіть назву цілі або банк', 'error'); return; }
+    if (!bank) { showToast('Оберіть банк', 'error'); return; }
     if (!goal) { showToast('Введіть цільову суму', 'error'); return; }
 
     const savings = Storage.getSavings();

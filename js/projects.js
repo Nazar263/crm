@@ -18,15 +18,16 @@ const Projects = {
 
   updateCalcPreview() {
     const budget = Number(document.getElementById('project-budget').value) || 0;
-    const specialistCost = Number(document.getElementById('project-specialist-cost').value) || 0;
     const prepayment = Number(document.getElementById('project-prepayment').value) || 0;
     const paidToSpecialist = Number(document.getElementById('project-paid-specialist').value) || 0;
-    const myPercent = Number(document.getElementById('project-my-percent').value) || 100;
+    const myPercent = Number(document.getElementById('project-my-percent').value) || 0;
+    const profitTaken = Number(document.getElementById('project-profit-taken').value) || 0;
 
-    const calc = Calc.project({ budget, specialistCost, prepayment, paidToSpecialist, myPercent });
+    const calc = Calc.project({ budget, prepayment, paidToSpecialist, myPercent, profitTaken });
+    document.getElementById('project-specialist-cost').value = calc.specialistCost || '';
     document.getElementById('project-remaining').value = Utils.formatMoney(calc.remainingPayment);
     document.getElementById('project-profit').value = Utils.formatMoney(calc.projectProfit);
-    document.getElementById('project-my-income').value = Utils.formatMoney(calc.myIncome);
+    document.getElementById('project-profit-left').value = Utils.formatMoney(calc.profitLeft);
     document.getElementById('project-specialist-debt').value = Utils.formatMoney(calc.specialistDebt);
   },
 
@@ -42,10 +43,13 @@ const Projects = {
     document.getElementById('project-client-telegram').value = '';
     document.getElementById('project-client-source').value = 'Інше';
     document.getElementById('project-budget').value = '';
+    document.getElementById('project-bank').value = '';
     document.getElementById('project-prepayment').value = '';
     document.getElementById('project-specialist-cost').value = '';
     document.getElementById('project-paid-specialist').value = '';
-    document.getElementById('project-my-percent').value = '100';
+    document.getElementById('project-my-percent').value = '';
+    document.getElementById('project-profit-taken').value = '';
+    document.getElementById('project-profit-left').value = '';
     document.getElementById('project-partner-commission').value = '';
     document.getElementById('project-description').value = '';
     this.populateSpecialistSelect();
@@ -76,10 +80,12 @@ const Projects = {
     document.getElementById('project-client-telegram').value = p.clientTelegram || client?.telegram || '';
     document.getElementById('project-client-source').value = p.clientSource || client?.source || 'Інше';
     document.getElementById('project-budget').value = p.budget || '';
+    document.getElementById('project-bank').value = p.bank || '';
     document.getElementById('project-prepayment').value = p.prepayment || '';
     document.getElementById('project-specialist-cost').value = p.specialistCost || '';
     document.getElementById('project-paid-specialist').value = p.paidToSpecialist || '';
-    document.getElementById('project-my-percent').value = p.myPercent ?? 100;
+    document.getElementById('project-my-percent').value = p.myPercent ?? '';
+    document.getElementById('project-profit-taken').value = p.profitTaken || '';
     document.getElementById('project-partner-commission').value = p.partnerCommission || '';
     document.getElementById('project-description').value = p.description || '';
 
@@ -99,6 +105,15 @@ const Projects = {
       document.getElementById('project-client-source').value
     );
 
+    const budget = Number(document.getElementById('project-budget').value) || 0;
+    const myPercent = Number(document.getElementById('project-my-percent').value) || 0;
+    const calc = Calc.project({
+      budget,
+      myPercent,
+      prepayment: Number(document.getElementById('project-prepayment').value) || 0,
+      paidToSpecialist: Number(document.getElementById('project-paid-specialist').value) || 0,
+    });
+
     return {
       name: document.getElementById('project-name').value.trim(),
       type: document.getElementById('project-type').value,
@@ -109,11 +124,13 @@ const Projects = {
       clientName,
       clientTelegram: document.getElementById('project-client-telegram').value.trim(),
       clientSource: document.getElementById('project-client-source').value,
-      budget: Number(document.getElementById('project-budget').value) || 0,
+      budget,
+      bank: document.getElementById('project-bank').value.trim(),
       prepayment: Number(document.getElementById('project-prepayment').value) || 0,
-      specialistCost: Number(document.getElementById('project-specialist-cost').value) || 0,
+      specialistCost: calc.specialistCost,
       paidToSpecialist: Number(document.getElementById('project-paid-specialist').value) || 0,
-      myPercent: Number(document.getElementById('project-my-percent').value) || 100,
+      myPercent,
+      profitTaken: Number(document.getElementById('project-profit-taken').value) || 0,
       developerId: document.getElementById('project-specialist').value,
       partnerId: document.getElementById('project-partner').value,
       partnerCommission: Number(document.getElementById('project-partner-commission').value) || 0,
@@ -130,6 +147,7 @@ const Projects = {
     if (!raw.type) { showToast('Оберіть тип проєкту', 'error'); return; }
     if (!raw.startDate) { showToast('Вкажіть дату старту', 'error'); return; }
     if (!raw.clientName) { showToast('Введіть ім\'я клієнта', 'error'); return; }
+    if (raw.profitTaken > Calc.project(raw).projectProfit) { showToast('Забрана сума більша за прибуток проєкту', 'error'); return; }
 
     if (fromCompleted) {
       const completed = Storage.getCompleted();
@@ -234,7 +252,7 @@ const Projects = {
     const clients = Storage.getClients();
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="9"><div class="empty-state"><span>Немає активних проєктів</span><small>Натисніть «Новий проєкт», щоб додати</small></div></td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="14"><div class="empty-state"><span>Немає активних проєктів</span><small>Натисніть «Новий проєкт», щоб додати</small></div></td></tr>`;
       return;
     }
 
@@ -249,8 +267,13 @@ const Projects = {
           <td>${Utils.escHtml(clientName)}</td>
           <td>${Utils.formatDate(Calc.projectStartDate(p))}</td>
           <td>${Utils.formatMoney(calc.budget)}</td>
-          <td style="color:var(--accent-green)">${Utils.formatMoney(calc.myIncome)}</td>
+          <td>${p.bank ? bankBadge(p.bank) : '<span style="color:var(--text-secondary)">—</span>'}</td>
           <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.clientDebt)}</td>
+          <td>${Utils.formatMoney(calc.specialistCost)}</td>
+          <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.specialistDebt)}</td>
+          <td style="color:var(--accent-green)">${Utils.formatMoney(calc.projectProfit)}</td>
+          <td style="color:var(--accent-blue)">${Utils.formatMoney(calc.profitTaken)}</td>
+          <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.profitLeft)}</td>
           <td>${statusBadge(p.status)}</td>
           <td>
             <div class="actions-cell">
@@ -274,6 +297,7 @@ const Projects = {
     let filtered = this.filterProjects(Storage.getCompleted());
     filtered.sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
     const clients = Storage.getClients();
+    const specialists = Storage.getSpecialists();
 
     if (!filtered.length) {
       tbody.innerHTML = `<tr class="empty-row"><td colspan="10"><div class="empty-state"><span>Немає завершених проєктів</span></div></td></tr>`;
@@ -283,17 +307,26 @@ const Projects = {
     tbody.innerHTML = filtered.map(p => {
       const client = clients.find(c => c.id === p.clientId);
       const clientName = client ? client.name : p.clientName || '—';
+      const clientTelegram = p.clientTelegram || client?.telegram || '';
+      const specialist = specialists.find(s => s.id === p.developerId);
+      const specialistName = specialist ? specialist.name : '—';
       const calc = Calc.project(p);
       return `
         <tr>
           <td><strong>${Utils.escHtml(p.name)}</strong></td>
           <td>${typeBadge(p.type)}</td>
-          <td>${Utils.escHtml(clientName)}</td>
+          <td>
+            <div>${Utils.escHtml(clientName)}</div>
+            ${clientTelegram ? `<div style="margin-top:2px;color:var(--text-secondary);font-size:0.85em">${Utils.escHtml(clientTelegram)}</div>` : ''}
+          </td>
           <td>${Utils.formatDate(Calc.projectStartDate(p))}</td>
           <td>${Utils.formatDate(Calc.projectEndDate(p))}</td>
           <td>${p.days ?? '—'} дн.</td>
           <td>${Utils.formatMoney(calc.budget)}</td>
-          <td style="color:var(--accent-green)">${Utils.formatMoney(calc.myIncome)}</td>
+          <td>
+            <div>${Utils.escHtml(specialistName)}</div>
+            <div style="margin-top:2px;color:var(--text-secondary)">${Utils.formatMoney(calc.specialistCost)}</div>
+          </td>
           <td style="color:var(--accent-green)">${Utils.formatMoney(calc.projectProfit)}</td>
           <td>
             <div class="actions-cell">
@@ -310,7 +343,7 @@ const Projects = {
   },
 };
 
-['project-budget', 'project-prepayment', 'project-specialist-cost', 'project-paid-specialist', 'project-my-percent'].forEach(id => {
+['project-budget', 'project-prepayment', 'project-paid-specialist', 'project-my-percent', 'project-profit-taken'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', () => Projects.updateCalcPreview());
 });
 

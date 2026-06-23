@@ -61,6 +61,11 @@
     </nav>
 
     <div class="sidebar-footer">
+      <div class="backup-actions">
+        <button class="backup-btn" id="btn-export-data" type="button">Експорт</button>
+        <button class="backup-btn" id="btn-import-data" type="button">Імпорт</button>
+        <input type="file" id="backup-file-input" accept="application/json,.json" hidden>
+      </div>
       <div class="sidebar-footer-info">
         <span class="footer-version">MVP v1.1</span>
         <span class="footer-storage" id="storage-indicator">LocalStorage</span>
@@ -157,7 +162,7 @@
       <h3 class="section-title">Фінанси</h3>
       <div class="charts-grid charts-grid--2">
         <div class="chart-card"><div class="chart-header"><h3 class="chart-title">Доходи / витрати</h3></div><div class="chart-body"><canvas id="chart-finance"></canvas></div></div>
-        <div class="chart-card"><div class="chart-header"><h3 class="chart-title">Борг мені / Мої борги</h3></div><div class="chart-body"><canvas id="chart-debts"></canvas></div></div>
+        <div class="chart-card"><div class="chart-header"><h3 class="chart-title">Активи по банках</h3></div><div class="chart-body"><canvas id="chart-banks"></canvas></div></div>
       </div>
 
       <h3 class="section-title">Відкладення</h3>
@@ -187,25 +192,23 @@
         </div>
         <select class="filter-select" id="projects-filter-type">
           <option value="">Усі типи</option>
-          <option value="Landing Page">Landing Page</option>
-          <option value="Корпоративний сайт">Корпоративний сайт</option>
-          <option value="Інтернет-магазин">Інтернет-магазин</option>
-          <option value="Дизайн">Дизайн</option>
-          <option value="Інше">Інше</option>
+          <option value="IT">IT</option>
+          <option value="Design">Design</option>
+          <option value="Video">Video</option>
         </select>
       </div>
       <div class="tab-content active" id="tab-active">
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Назва</th><th>Тип</th><th>Клієнт</th><th>Старт</th><th>Бюджет</th><th>Мій дохід</th><th>Борг клієнта</th><th>Статус</th><th>Дії</th></tr></thead>
-            <tbody id="tbody-active-projects"><tr class="empty-row"><td colspan="9"><div class="empty-state"><span>Немає активних проєктів</span></div></td></tr></tbody>
+            <thead><tr><th>Назва</th><th>Тип</th><th>Клієнт</th><th>Старт</th><th>Бюджет</th><th>Банк</th><th>Борг клієнта</th><th>Фахівець</th><th>Борг фахівцю</th><th>Прибуток</th><th>Забрав собі</th><th>Лишилось</th><th>Статус</th><th>Дії</th></tr></thead>
+            <tbody id="tbody-active-projects"><tr class="empty-row"><td colspan="14"><div class="empty-state"><span>Немає активних проєктів</span></div></td></tr></tbody>
           </table>
         </div>
       </div>
       <div class="tab-content" id="tab-completed">
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Назва</th><th>Тип</th><th>Клієнт</th><th>Старт</th><th>Завершено</th><th>Днів</th><th>Бюджет</th><th>Мій дохід</th><th>Прибуток</th><th>Дії</th></tr></thead>
+            <thead><tr><th>Назва</th><th>Тип</th><th>Клієнт</th><th>Старт</th><th>Завершено</th><th>Днів</th><th>Бюджет</th><th>Фахівець</th><th>Мій дохід</th><th>Дії</th></tr></thead>
             <tbody id="tbody-completed-projects"><tr class="empty-row"><td colspan="10"><div class="empty-state"><span>Немає завершених проєктів</span></div></td></tr></tbody>
           </table>
         </div>
@@ -294,6 +297,10 @@
 
       <div class="finance-summary">
         <div class="stat-card"><div class="stat-info"><span class="stat-label">Баланс</span><span class="stat-value" id="finance-balance">₴0</span></div></div>
+      </div>
+
+      <div class="charts-grid charts-grid--1">
+        <div class="chart-card"><div class="chart-header"><h3 class="chart-title">Активи по банках</h3></div><div class="chart-body"><canvas id="chart-finance-banks"></canvas></div></div>
       </div>
 
       <div class="table-toolbar">
@@ -403,7 +410,7 @@
         <input type="hidden" id="project-from-completed" value="">
         <div class="form-grid">
           <div class="form-group form-group--full"><label class="form-label">Назва проєкту *</label><input type="text" class="form-input" id="project-name" placeholder="Наприклад: Сайт для кафе"></div>
-          <div class="form-group"><label class="form-label">Тип *</label><select class="form-input" id="project-type"><option value="">Оберіть тип</option><option value="Landing Page">Landing Page</option><option value="Корпоративний сайт">Корпоративний сайт</option><option value="Інтернет-магазин">Інтернет-магазин</option><option value="Дизайн">Дизайн</option><option value="Інше">Інше</option></select></div>
+          <div class="form-group"><label class="form-label">Тип *</label><select class="form-input" id="project-type"><option value="">Оберіть тип</option><option value="IT">IT</option><option value="Design">Design</option><option value="Video">Video</option></select></div>
           <div class="form-group"><label class="form-label">Статус *</label><select class="form-input" id="project-status"><option value="В роботі">В роботі</option><option value="На паузі">На паузі</option><option value="На перевірці">На перевірці</option></select></div>
           <div class="form-group"><label class="form-label">Дата старту *</label><input type="date" class="form-input" id="project-start-date"></div>
           <div class="form-group"><label class="form-label">Дата завершення (ручна)</label><input type="date" class="form-input" id="project-end-date"></div>
@@ -413,14 +420,16 @@
           <div class="form-group"><label class="form-label">Telegram клієнта</label><input type="text" class="form-input" id="project-client-telegram" placeholder="@username"></div>
           <div class="form-group"><label class="form-label">Джерело клієнта</label><select class="form-input" id="project-client-source"><option value="Інше">Інше</option><option value="Telegram">Telegram</option><option value="Instagram">Instagram</option><option value="YouTube">YouTube</option><option value="Реклама">Реклама</option><option value="Сайт">Сайт</option><option value="Сарафанне радіо">Сарафанне радіо</option></select></div>
           <div class="form-group"><label class="form-label">Бюджет (₴) *</label><input type="number" class="form-input" id="project-budget" min="0" placeholder="0"></div>
+          <div class="form-group"><label class="form-label">Банк</label><input type="text" class="form-input" id="project-bank" placeholder="Наприклад: Monobank, PrivatBank, Sense..."></div>
           <div class="form-group"><label class="form-label">Передоплата (₴)</label><input type="number" class="form-input" id="project-prepayment" min="0" placeholder="0"></div>
           <div class="form-group"><label class="form-label">До доплати (авто)</label><input type="text" class="form-input form-input--readonly" id="project-remaining" readonly></div>
-          <div class="form-group"><label class="form-label">Вартість фахівця (₴)</label><input type="number" class="form-input" id="project-specialist-cost" min="0" placeholder="0"></div>
+          <div class="form-group"><label class="form-label">Вартість фахівця (авто)</label><input type="text" class="form-input form-input--readonly" id="project-specialist-cost" readonly></div>
           <div class="form-group"><label class="form-label">Виплачено фахівцю (₴)</label><input type="number" class="form-input" id="project-paid-specialist" min="0" placeholder="0"></div>
           <div class="form-group"><label class="form-label">Борг фахівцю (авто)</label><input type="text" class="form-input form-input--readonly" id="project-specialist-debt" readonly></div>
-          <div class="form-group"><label class="form-label">Мій %</label><input type="number" class="form-input" id="project-my-percent" min="0" max="100" value="100"></div>
+          <div class="form-group"><label class="form-label">Мій % від суми</label><input type="number" class="form-input" id="project-my-percent" min="0" max="100" placeholder="30"></div>
           <div class="form-group"><label class="form-label">Прибуток (авто)</label><input type="text" class="form-input form-input--readonly" id="project-profit" readonly></div>
-          <div class="form-group"><label class="form-label">Мій дохід (авто)</label><input type="text" class="form-input form-input--readonly" id="project-my-income" readonly></div>
+          <div class="form-group"><label class="form-label">Забрав собі з прибутку (₴)</label><input type="number" class="form-input" id="project-profit-taken" min="0" placeholder="0"></div>
+          <div class="form-group"><label class="form-label">Лишилось з прибутку (авто)</label><input type="text" class="form-input form-input--readonly" id="project-profit-left" readonly></div>
           <div class="form-group"><label class="form-label">Комісія партнеру (₴)</label><input type="number" class="form-input" id="project-partner-commission" min="0" placeholder="0"></div>
           <div class="form-group form-group--full"><label class="form-label">Опис</label><textarea class="form-input form-textarea" id="project-description" placeholder="Деталі проєкту..."></textarea></div>
         </div>
@@ -488,7 +497,7 @@
         <div class="form-grid">
           <div class="form-group"><label class="form-label">Тип *</label><select class="form-input" id="transaction-type"><option value="income">Дохід</option><option value="expense">Витрата</option></select></div>
           <div class="form-group"><label class="form-label">Сума (₴) *</label><input type="number" class="form-input" id="transaction-amount" min="0"></div>
-          <div class="form-group"><label class="form-label">Банк / джерело</label><input type="text" class="form-input" id="transaction-bank" placeholder="Monobank, Privat..."></div>
+          <div class="form-group"><label class="form-label">Банк *</label><select class="form-input" id="transaction-bank"><option value="">Оберіть банк</option><option value="mono">Monobank</option><option value="privat">PrivatBank</option><option value="cash">Готівка</option></select></div>
           <div class="form-group"><label class="form-label">Категорія</label><input type="text" class="form-input" id="transaction-category" placeholder="Проєкт, офіс, реклама..."></div>
           <div class="form-group form-group--full"><label class="form-label">Опис</label><input type="text" class="form-input" id="transaction-description"></div>
           <div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="transaction-date"></div>
@@ -536,7 +545,7 @@
         <input type="hidden" id="saving-id">
         <div class="form-grid">
           <div class="form-group form-group--full"><label class="form-label">Назва цілі</label><input type="text" class="form-input" id="saving-name" placeholder="MacBook, подушка безпеки..."></div>
-          <div class="form-group"><label class="form-label">Банк *</label><input type="text" class="form-input" id="saving-bank" placeholder="Monobank, Privat..."></div>
+          <div class="form-group"><label class="form-label">Банк *</label><select class="form-input" id="saving-bank"><option value="">Оберіть банк</option><option value="mono">Monobank</option><option value="privat">PrivatBank</option><option value="cash">Готівка</option></select></div>
           <div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="saving-date"></div>
           <div class="form-group"><label class="form-label">Наразі (₴)</label><input type="number" class="form-input" id="saving-amount" min="0" placeholder="0"></div>
           <div class="form-group"><label class="form-label">Ціль (₴) *</label><input type="number" class="form-input" id="saving-goal" min="0" placeholder="0"></div>

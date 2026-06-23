@@ -1,7 +1,3 @@
-/* =============================================
-   ui.js — Utils, modals, navigation, toasts
-   ============================================= */
-
 const Utils = {
   formatMoney(n) {
     const num = Number(n) || 0;
@@ -32,6 +28,36 @@ const Utils = {
     const [y, m] = key.split('-');
     const months = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'];
     return `${months[parseInt(m, 10) - 1]} ${y}`;
+  },
+};
+
+const Banks = {
+  list: [
+    { id: 'mono', label: 'Monobank', badge: 'badge--black', chartColor: 'rgba(28, 28, 28, 0.92)', borderColor: '#666' },
+    { id: 'privat', label: 'PrivatBank', badge: 'badge--green', chartColor: 'rgba(52, 211, 153, 0.65)', borderColor: '#34d399' },
+    { id: 'cash', label: 'Готівка', badge: 'badge--paper', chartColor: 'rgba(212, 196, 168, 0.75)', borderColor: '#d4c4a8' },
+  ],
+
+  normalize(value) {
+    const v = String(value || '').toLowerCase().trim();
+    if (!v) return '';
+    if (v === 'mono' || v.includes('monobank') || v.includes('моно')) return 'mono';
+    if (v === 'privat' || v.includes('privatbank') || v.includes('приват')) return 'privat';
+    if (v === 'cash' || v.includes('готів') || v.includes('gotiv')) return 'cash';
+    return '';
+  },
+
+  label(id) {
+    return this.list.find(b => b.id === id)?.label || id || '—';
+  },
+
+  populateSelect(selectId, selected = '', emptyLabel = 'Оберіть банк') {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    const normalized = this.normalize(selected) || selected;
+    el.innerHTML = `<option value="">${Utils.escHtml(emptyLabel)}</option>` +
+      this.list.map(b => `<option value="${b.id}">${Utils.escHtml(b.label)}</option>`).join('');
+    el.value = this.list.some(b => b.id === normalized) ? normalized : '';
   },
 };
 
@@ -76,13 +102,18 @@ function statusBadge(status) {
   return `<span class="badge ${map[status] || 'badge--gray'}">${Utils.escHtml(status)}</span>`;
 }
 
+function bankBadge(bankId) {
+  const id = Banks.normalize(bankId) || bankId;
+  const bank = Banks.list.find(b => b.id === id);
+  if (!bank) return `<span class="badge badge--gray">${Utils.escHtml(bankId || '—')}</span>`;
+  return `<span class="badge ${bank.badge}">${Utils.escHtml(bank.label)}</span>`;
+}
+
 function typeBadge(type) {
   const map = {
-    'Landing Page': 'badge--teal',
-    'Корпоративний сайт': 'badge--blue',
-    'Інтернет-магазин': 'badge--green',
-    'Дизайн': 'badge--pink',
-    'Інше': 'badge--gray',
+    IT: 'badge--blue',
+    Design: 'badge--pink',
+    Video: 'badge--purple',
   };
   return `<span class="badge ${map[type] || 'badge--gray'}">${Utils.escHtml(type)}</span>`;
 }
@@ -170,9 +201,64 @@ function refreshAll() {
   if (document.getElementById('page-savings').classList.contains('active')) Savings.render();
 }
 
+function exportBackup() {
+  const payload = Storage.exportData();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const date = new Date().toISOString().slice(0, 10);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `webcrm-backup-${date}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast('Backup файл завантажено');
+}
+
+function importBackupFile(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    let payload;
+    try {
+      payload = JSON.parse(reader.result);
+    } catch {
+      showToast('Не вдалося прочитати JSON файл', 'error');
+      return;
+    }
+
+    showConfirm(
+      'Імпортувати backup?',
+      'Поточні дані CRM будуть замінені даними з файлу. Перед імпортом краще зробити експорт поточного стану.',
+      () => {
+        try {
+          Storage.importData(payload);
+          refreshAll();
+          showToast('Дані імпортовано');
+        } catch (err) {
+          showToast(err.message || 'Не вдалося імпортувати файл', 'error');
+        }
+      }
+    );
+  };
+  reader.readAsText(file);
+}
+
 document.getElementById('btn-confirm-action').addEventListener('click', () => {
   if (_confirmCallback) { _confirmCallback(); _confirmCallback = null; }
   closeModal('modal-confirm');
+});
+
+document.getElementById('btn-export-data')?.addEventListener('click', exportBackup);
+document.getElementById('btn-import-data')?.addEventListener('click', () => {
+  const input = document.getElementById('backup-file-input');
+  input.value = '';
+  input.click();
+});
+document.getElementById('backup-file-input')?.addEventListener('change', (e) => {
+  importBackupFile(e.target.files?.[0]);
 });
 
 document.querySelectorAll('[data-close]').forEach(el => {

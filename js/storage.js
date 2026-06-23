@@ -30,6 +30,15 @@ const Storage = {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
   },
 
+  normalizeBank(value) {
+    const v = String(value || '').toLowerCase().trim();
+    if (!v) return '';
+    if (v === 'mono' || v.includes('monobank') || v.includes('моно')) return 'mono';
+    if (v === 'privat' || v.includes('privatbank') || v.includes('приват')) return 'privat';
+    if (v === 'cash' || v.includes('готів') || v.includes('gotiv')) return 'cash';
+    return '';
+  },
+
   getProjects() { return this.get(this.KEYS.projectsActive); },
   getCompleted() { return this.get(this.KEYS.projectsCompleted); },
   getClients() { return this.get(this.KEYS.clients); },
@@ -52,6 +61,35 @@ const Storage = {
     return [...this.getProjects(), ...this.getCompleted()];
   },
 
+  exportData() {
+    const data = {};
+    Object.entries(this.KEYS).forEach(([name, key]) => {
+      data[name] = this.get(key);
+    });
+    return {
+      app: 'WebAgency CRM',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      data,
+    };
+  },
+
+  importData(payload) {
+    if (!payload || typeof payload !== 'object') throw new Error('Некоректний файл');
+    const data = payload.data && typeof payload.data === 'object' ? payload.data : payload;
+    const nextData = {};
+
+    Object.entries(this.KEYS).forEach(([name, key]) => {
+      const value = data[name];
+      if (value != null && !Array.isArray(value)) throw new Error('Некоректний формат даних');
+      nextData[key] = Array.isArray(value) ? value : [];
+    });
+
+    Object.entries(nextData).forEach(([key, value]) => this.set(key, value));
+    ['crm_migrated_v11', 'crm_migrated_v12', 'crm_migrated_v13', 'crm_migrated_v14'].forEach(key => localStorage.removeItem(key));
+    this.migrate();
+  },
+
   /** Strip computed fields & migrate legacy v1.0 data */
   migrate() {
     const stripProject = (p) => {
@@ -63,14 +101,30 @@ const Storage = {
       delete raw.remainingPayment;
       if (raw.prepayment == null) raw.prepayment = 0;
       if (raw.paidToSpecialist == null) raw.paidToSpecialist = 0;
-      if (raw.myPercent == null) raw.myPercent = 100;
+      if (raw.myPercent == null) raw.myPercent = 0;
+      if (raw.profitTaken == null) raw.profitTaken = 0;
       if (raw.partnerCommission == null) raw.partnerCommission = 0;
       if (!raw.partnerId) raw.partnerId = '';
       return raw;
     };
 
-    this.saveProjects(this.getProjects().map(stripProject));
-    this.saveCompleted(this.getCompleted().map(stripProject));
+    if (!localStorage.getItem('crm_migrated_v12')) {
+      const migratePercent = (p) => {
+        const raw = stripProject(p);
+        const budget = Number(raw.budget) || 0;
+        if (budget > 0) {
+          const storedCost = Number(raw.specialistCost) || 0;
+          raw.myPercent = Math.round((budget - storedCost) / budget * 100);
+        }
+        return raw;
+      };
+      this.saveProjects(this.getProjects().map(migratePercent));
+      this.saveCompleted(this.getCompleted().map(migratePercent));
+      localStorage.setItem('crm_migrated_v12', '1');
+    } else {
+      this.saveProjects(this.getProjects().map(stripProject));
+      this.saveCompleted(this.getCompleted().map(stripProject));
+    }
 
     const partners = this.getPartners();
     if (!partners.length && !localStorage.getItem('crm_migrated_v11')) {
@@ -85,6 +139,37 @@ const Storage = {
     this.saveSpecialists(specialists);
 
     localStorage.setItem('crm_migrated_v11', '1');
+
+    if (!localStorage.getItem('crm_migrated_v13')) {
+      const typeMap = {
+        'Landing Page': 'IT',
+        'Корпоративний сайт': 'IT',
+        'Інтернет-магазин': 'IT',
+        'Дизайн': 'Design',
+        'Інше': 'IT',
+      };
+      const migrateType = (p) => {
+        const raw = { ...p };
+        if (raw.type && typeMap[raw.type]) raw.type = typeMap[raw.type];
+        return raw;
+      };
+      this.saveProjects(this.getProjects().map(migrateType));
+      this.saveCompleted(this.getCompleted().map(migrateType));
+      localStorage.setItem('crm_migrated_v13', '1');
+    }
+
+    if (!localStorage.getItem('crm_migrated_v14')) {
+      const normalizeBankField = (bank) => Storage.normalizeBank(bank) || bank;
+      this.saveTransactions(this.getTransactions().map(t => ({
+        ...t,
+        bank: normalizeBankField(t.bank),
+      })));
+      this.saveSavings(this.getSavings().map(s => ({
+        ...s,
+        bank: normalizeBankField(s.bank),
+      })));
+      localStorage.setItem('crm_migrated_v14', '1');
+    }
   },
 };
 
@@ -94,21 +179,22 @@ const Storage = {
 const Calc = {
   project(p) {
     const budget = Number(p.budget) || 0;
-    const specialistCost = Number(p.specialistCost) || 0;
     const prepayment = Number(p.prepayment) || 0;
     const paidToSpecialist = Number(p.paidToSpecialist) || 0;
-    const myPercent = Number(p.myPercent ?? 100);
+    const myPercent = Number(p.myPercent ?? 0);
+    const profitTaken = Number(p.profitTaken) || 0;
     const partnerCommission = Number(p.partnerCommission) || 0;
 
-    const projectProfit = budget - specialistCost;
-    const myIncome = projectProfit * (myPercent / 100);
+    const projectProfit = Math.round(budget * myPercent / 100);
+    const specialistCost = budget - projectProfit;
     const clientDebt = budget - prepayment;
     const specialistDebt = specialistCost - paidToSpecialist;
     const remainingPayment = budget - prepayment;
+    const profitLeft = projectProfit - profitTaken;
 
     return {
-      budget, specialistCost, prepayment, paidToSpecialist, myPercent, partnerCommission,
-      projectProfit, myIncome, clientDebt, specialistDebt, remainingPayment,
+      budget, specialistCost, prepayment, paidToSpecialist, myPercent, profitTaken, partnerCommission,
+      projectProfit, clientDebt, specialistDebt, remainingPayment, profitLeft,
     };
   },
 
@@ -163,7 +249,7 @@ const Calc = {
       const c = this.project(p);
       totalDeals += c.budget;
       totalCommission += c.partnerCommission;
-      ourIncome += c.myIncome;
+      ourIncome += c.projectProfit;
     });
     const partner = Storage.getPartners().find(x => x.id === partnerId);
     const paidToPartner = Number(partner?.paidToPartner) || 0;
@@ -181,6 +267,18 @@ const Calc = {
     const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + (Number(t.amount) || 0), 0);
     return income - expense;
+  },
+
+  bankBalances(transactions = Storage.getTransactions()) {
+    const balances = { mono: 0, privat: 0, cash: 0 };
+    transactions.forEach(t => {
+      const bank = Storage.normalizeBank(t.bank);
+      if (!bank) return;
+      const amount = Number(t.amount) || 0;
+      if (t.type === 'income') balances[bank] += amount;
+      else if (t.type === 'expense') balances[bank] -= amount;
+    });
+    return balances;
   },
 
   personalDebtSummary(debts = Storage.getPersonalDebts()) {
@@ -222,14 +320,17 @@ const Calc = {
     const partners = Storage.getPartners();
     const transactions = Storage.getTransactions();
 
-    let totalBudget = 0, totalMyIncome = 0, totalProfit = 0;
+    let totalBudget = 0, totalProfit = 0;
     let clientDebts = 0, specialistDebts = 0, partnerDebts = 0;
+
+    completed.forEach(p => {
+      const c = Calc.project(p);
+      totalBudget += c.budget;
+      totalProfit += c.projectProfit;
+    });
 
     all.forEach(p => {
       const c = Calc.project(p);
-      totalBudget += c.budget;
-      totalMyIncome += c.myIncome;
-      totalProfit += c.projectProfit;
       clientDebts += c.clientDebt;
       specialistDebts += c.specialistDebt;
     });
@@ -243,15 +344,14 @@ const Calc = {
 
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const monthIncome = completed
-      .filter(p => Utils.getMonthKey(Calc.projectEndDate(p)) === monthKey)
-      .reduce((s, p) => s + Calc.project(p).myIncome, 0);
+    const monthIncome = transactions
+      .filter(t => t.type === 'income' && Utils.getMonthKey(t.date || t.plannedDate) === monthKey)
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
     const savings = Calc.savingsSummary();
 
     return {
       totalBudget,
-      totalMyIncome,
       netProfit: totalProfit,
       savingsTotal: savings.totalSaved,
       activeCount: active.length,

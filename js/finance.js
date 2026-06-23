@@ -5,6 +5,7 @@
 const Finance = {
   render() {
     this.renderSummary();
+    Charts.renderBankBalances('chart-finance-banks', 'financeBanks');
     this.renderTable();
   },
 
@@ -21,9 +22,10 @@ const Finance = {
 
     return transactions
       .filter(t => {
+        const bankLabel = Banks.label(Banks.normalize(t.bank) || t.bank).toLowerCase();
         const matchSearch = (t.description || '').toLowerCase().includes(search) ||
           (t.category || '').toLowerCase().includes(search) ||
-          (t.bank || '').toLowerCase().includes(search);
+          bankLabel.includes(search);
         const matchType = !typeFilter || t.type === typeFilter;
         return matchSearch && matchType;
       })
@@ -46,7 +48,7 @@ const Finance = {
         <tr>
           <td>${financeTypeBadge(t.type)}</td>
           <td style="color:${amountColor};font-weight:600">${sign}${Utils.formatMoney(t.amount)}</td>
-          <td>${Utils.escHtml(t.bank || '—')}</td>
+          <td>${bankBadge(t.bank)}</td>
           <td>${Utils.escHtml(t.category || '—')}</td>
           <td>${Utils.escHtml(t.description || '—')}</td>
           <td>${Utils.formatDate(t.date || t.plannedDate)}</td>
@@ -68,7 +70,7 @@ const Finance = {
     document.getElementById('transaction-id').value = '';
     document.getElementById('transaction-type').value = type;
     document.getElementById('transaction-amount').value = '';
-    document.getElementById('transaction-bank').value = '';
+    Banks.populateSelect('transaction-bank');
     document.getElementById('transaction-category').value = '';
     document.getElementById('transaction-description').value = '';
     document.getElementById('transaction-date').value = Utils.today();
@@ -82,7 +84,7 @@ const Finance = {
     document.getElementById('transaction-id').value = t.id;
     document.getElementById('transaction-type').value = t.type;
     document.getElementById('transaction-amount').value = t.amount || '';
-    document.getElementById('transaction-bank').value = t.bank || '';
+    Banks.populateSelect('transaction-bank', t.bank || '');
     document.getElementById('transaction-category').value = t.category || '';
     document.getElementById('transaction-description').value = t.description || '';
     document.getElementById('transaction-date').value = t.date || t.plannedDate || '';
@@ -94,12 +96,13 @@ const Finance = {
     const id = document.getElementById('transaction-id').value;
     const type = document.getElementById('transaction-type').value;
     const amount = Number(document.getElementById('transaction-amount').value) || 0;
-    const bank = document.getElementById('transaction-bank').value.trim();
+    const bank = document.getElementById('transaction-bank').value;
     const category = document.getElementById('transaction-category').value.trim();
     const description = document.getElementById('transaction-description').value.trim();
     const date = document.getElementById('transaction-date').value;
 
     if (!amount) { showToast('Введіть суму', 'error'); return; }
+    if (!bank) { showToast('Оберіть банк', 'error'); return; }
 
     const transactions = Storage.getTransactions();
     const raw = { type, amount, bank, category, description, date, status: 'done' };
