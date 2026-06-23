@@ -279,8 +279,8 @@
       </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Назва</th><th>Послуги</th><th>Клієнтів</th><th>Угоди</th><th>Комісія</th><th>Виплачено</th><th>Борг</th><th>Наш дохід</th><th>Дії</th></tr></thead>
-          <tbody id="tbody-partners"><tr class="empty-row"><td colspan="9"><div class="empty-state"><span>Немає партнерів</span></div></td></tr></tbody>
+          <thead><tr><th>Назва</th><th>Послуги</th><th>Клієнтів</th><th>Угоди</th><th>Комісія</th><th>Виплачено</th><th>Борг</th><th>Наш дохід</th><th>Передали їм</th><th>Ціна</th><th>Наша комісія</th><th>Виплачено нам</th><th>Їхній борг</th><th>Дії</th></tr></thead>
+          <tbody id="tbody-partners"><tr class="empty-row"><td colspan="14"><div class="empty-state"><span>Немає партнерів</span></div></td></tr></tbody>
         </table>
       </div>
     </section>
@@ -476,6 +476,10 @@
           <div class="form-group form-group--full"><label class="form-label">Назва / ім'я *</label><input type="text" class="form-input" id="partner-name"></div>
           <div class="form-group form-group--full"><label class="form-label">Послуги</label><input type="text" class="form-input" id="partner-services" placeholder="SEO, реклама, дизайн..."></div>
           <div class="form-group form-group--full"><label class="form-label">Виплачено партнеру (₴)</label><input type="number" class="form-input" id="partner-paid" min="0" placeholder="0"><small class="form-hint">Комісія та борг рахуються автоматично з проєктів</small></div>
+          <div class="form-group"><label class="form-label">Проєктів передали їм</label><input type="number" class="form-input" id="partner-given-projects" min="0" placeholder="0"></div>
+          <div class="form-group"><label class="form-label">Ціна переданих проєктів (₴)</label><input type="number" class="form-input" id="partner-given-price" min="0" placeholder="0"></div>
+          <div class="form-group"><label class="form-label">Наша комісія (₴)</label><input type="number" class="form-input" id="partner-our-commission" min="0" placeholder="0"></div>
+          <div class="form-group"><label class="form-label">Виплачено нам (₴)</label><input type="number" class="form-input" id="partner-paid-to-us" min="0" placeholder="0"><small class="form-hint">Їхній борг рахується як наша комісія мінус виплачено нам</small></div>
         </div>
       </div>
       <div class="modal-footer">

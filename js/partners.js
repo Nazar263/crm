@@ -14,7 +14,7 @@ const Partners = {
     );
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="9"><div class="empty-state"><span>Немає партнерів</span><small>Додайте партнера або прив'яжіть до проєкту</small></div></td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="14"><div class="empty-state"><span>Немає партнерів</span><small>Додайте партнера або прив'яжіть до проєкту</small></div></td></tr>`;
       return;
     }
 
@@ -30,6 +30,11 @@ const Partners = {
           <td>${Utils.formatMoney(stats.paidToPartner)}</td>
           <td style="color:${stats.partnerDebt > 0 ? 'var(--accent-orange)' : 'var(--accent-green)'}">${Utils.formatMoney(stats.partnerDebt)}</td>
           <td style="color:var(--accent-green)">${Utils.formatMoney(stats.ourIncome)}</td>
+          <td>${stats.givenProjectsCount}</td>
+          <td>${Utils.formatMoney(stats.givenProjectsPrice)}</td>
+          <td style="color:var(--accent-green)">${Utils.formatMoney(stats.ourCommission)}</td>
+          <td>${Utils.formatMoney(stats.paidToUs)}</td>
+          <td style="color:${stats.theirDebt > 0 ? 'var(--accent-orange)' : 'var(--accent-green)'}">${Utils.formatMoney(stats.theirDebt)}</td>
           <td>
             <div class="actions-cell">
               <button class="btn-icon btn-icon--edit" title="Редагувати" onclick="Partners.openEdit('${p.id}')">
@@ -57,6 +62,10 @@ const Partners = {
     document.getElementById('partner-name').value = '';
     document.getElementById('partner-services').value = '';
     document.getElementById('partner-paid').value = '';
+    document.getElementById('partner-given-projects').value = '';
+    document.getElementById('partner-given-price').value = '';
+    document.getElementById('partner-our-commission').value = '';
+    document.getElementById('partner-paid-to-us').value = '';
     document.getElementById('modal-partner-title').textContent = 'Новий партнер';
     openModal('modal-partner');
   },
@@ -68,6 +77,10 @@ const Partners = {
     document.getElementById('partner-name').value = p.name;
     document.getElementById('partner-services').value = p.services || '';
     document.getElementById('partner-paid').value = p.paidToPartner || '';
+    document.getElementById('partner-given-projects').value = p.givenProjectsCount || '';
+    document.getElementById('partner-given-price').value = p.givenProjectsPrice || '';
+    document.getElementById('partner-our-commission').value = p.ourCommission || '';
+    document.getElementById('partner-paid-to-us').value = p.paidToUs || '';
     document.getElementById('modal-partner-title').textContent = 'Редагувати партнера';
     openModal('modal-partner');
   },
@@ -77,19 +90,24 @@ const Partners = {
     const name = document.getElementById('partner-name').value.trim();
     const services = document.getElementById('partner-services').value.trim();
     const paidToPartner = Number(document.getElementById('partner-paid').value) || 0;
+    const givenProjectsCount = Number(document.getElementById('partner-given-projects').value) || 0;
+    const givenProjectsPrice = Number(document.getElementById('partner-given-price').value) || 0;
+    const ourCommission = Number(document.getElementById('partner-our-commission').value) || 0;
+    const paidToUs = Number(document.getElementById('partner-paid-to-us').value) || 0;
 
     if (!name) { showToast('Введіть назву партнера', 'error'); return; }
 
     const partners = Storage.getPartners();
+    const raw = { name, services, paidToPartner, givenProjectsCount, givenProjectsPrice, ourCommission, paidToUs };
 
     if (id) {
       const idx = partners.findIndex(p => p.id === id);
       if (idx >= 0) {
-        partners[idx] = { ...partners[idx], name, services, paidToPartner };
+        partners[idx] = { ...partners[idx], ...raw };
         showToast('Партнера оновлено');
       }
     } else {
-      partners.push({ id: Storage.generateId(), name, services, paidToPartner });
+      partners.push({ id: Storage.generateId(), ...raw });
       showToast('Партнера додано');
     }
 

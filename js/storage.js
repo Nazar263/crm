@@ -127,6 +127,14 @@ const Storage = {
     }
 
     const partners = this.getPartners();
+    partners.forEach(p => {
+      if (p.givenProjectsCount == null) p.givenProjectsCount = 0;
+      if (p.givenProjectsPrice == null) p.givenProjectsPrice = 0;
+      if (p.ourCommission == null) p.ourCommission = 0;
+      if (p.paidToUs == null) p.paidToUs = 0;
+    });
+    this.savePartners(partners);
+
     if (!partners.length && !localStorage.getItem('crm_migrated_v11')) {
       this.getPartners(); // ensure key exists
     }
@@ -253,6 +261,10 @@ const Calc = {
     });
     const partner = Storage.getPartners().find(x => x.id === partnerId);
     const paidToPartner = Number(partner?.paidToPartner) || 0;
+    const givenProjectsCount = Number(partner?.givenProjectsCount) || 0;
+    const givenProjectsPrice = Number(partner?.givenProjectsPrice) || 0;
+    const ourCommission = Number(partner?.ourCommission) || 0;
+    const paidToUs = Number(partner?.paidToUs) || 0;
     return {
       clientsCount: clientIds.size,
       totalDeals,
@@ -260,6 +272,11 @@ const Calc = {
       paidToPartner,
       partnerDebt: totalCommission - paidToPartner,
       ourIncome,
+      givenProjectsCount,
+      givenProjectsPrice,
+      ourCommission,
+      paidToUs,
+      theirDebt: ourCommission - paidToUs,
     };
   },
 
