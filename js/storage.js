@@ -12,7 +12,19 @@ const Storage = {
     transactions: 'transactions',
     personalDebts: 'personal_debts',
     savings: 'savings',
+    leads: 'leadgen_leads',
+    leadFilters: 'leadgen_filters',
   },
+
+  META_KEYS: {
+    lastSavedAt: 'crm_last_saved_at',
+    lastManualBackupAt: 'crm_last_manual_backup_at',
+    backupSnoozedUntil: 'crm_backup_snoozed_until',
+  },
+
+  BACKUP_KEYS: ['crm_backup_1', 'crm_backup_2', 'crm_backup_3', 'crm_backup_4', 'crm_backup_5'],
+
+  _suppressBackups: false,
 
   get(key) {
     try {
@@ -24,6 +36,7 @@ const Storage = {
 
   set(key, data) {
     localStorage.setItem(key, JSON.stringify(data));
+    this.afterSave();
   },
 
   generateId() {
@@ -47,6 +60,15 @@ const Storage = {
   getTransactions() { return this.get(this.KEYS.transactions); },
   getPersonalDebts() { return this.get(this.KEYS.personalDebts); },
   getSavings() { return this.get(this.KEYS.savings); },
+  getLeads() { return this.get(this.KEYS.leads); },
+  getLeadFilters() {
+    return {
+      onlyNoWebsite: false,
+      hideNotInteresting: true,
+      showHidden: false,
+      ...(this.get(this.KEYS.leadFilters) || {}),
+    };
+  },
 
   saveProjects(d) { this.set(this.KEYS.projectsActive, d); },
   saveCompleted(d) { this.set(this.KEYS.projectsCompleted, d); },
@@ -56,22 +78,45 @@ const Storage = {
   saveTransactions(d) { this.set(this.KEYS.transactions, d); },
   savePersonalDebts(d) { this.set(this.KEYS.personalDebts, d); },
   saveSavings(d) { this.set(this.KEYS.savings, d); },
+  saveLeads(d) { this.set(this.KEYS.leads, d); },
+  saveLeadFilters(d) { this.set(this.KEYS.leadFilters, d); },
 
   getAllProjects() {
     return [...this.getProjects(), ...this.getCompleted()];
   },
 
-  exportData() {
+  afterSave() {
+    if (this._suppressBackups) return;
+    const now = new Date().toISOString();
+    localStorage.setItem(this.META_KEYS.lastSavedAt, now);
+    this.rotateInternalBackups(now);
+  },
+
+  rotateInternalBackups(now = new Date().toISOString()) {
+    for (let i = this.BACKUP_KEYS.length - 1; i > 0; i--) {
+      const prev = localStorage.getItem(this.BACKUP_KEYS[i - 1]);
+      if (prev) localStorage.setItem(this.BACKUP_KEYS[i], prev);
+      else localStorage.removeItem(this.BACKUP_KEYS[i]);
+    }
+    localStorage.setItem(this.BACKUP_KEYS[0], JSON.stringify({
+      createdAt: now,
+      payload: this.exportData(false),
+    }));
+  },
+
+  exportData(includeMeta = true) {
     const data = {};
     Object.entries(this.KEYS).forEach(([name, key]) => {
       data[name] = this.get(key);
     });
-    return {
+    const payload = {
       app: 'WebAgency CRM',
       version: 1,
       exportedAt: new Date().toISOString(),
       data,
     };
+    if (includeMeta) payload.meta = this.getBackupInfo();
+    return payload;
   },
 
   importData(payload) {
@@ -85,9 +130,39 @@ const Storage = {
       nextData[key] = Array.isArray(value) ? value : [];
     });
 
+    this._suppressBackups = true;
     Object.entries(nextData).forEach(([key, value]) => this.set(key, value));
     ['crm_migrated_v11', 'crm_migrated_v12', 'crm_migrated_v13', 'crm_migrated_v14'].forEach(key => localStorage.removeItem(key));
     this.migrate();
+    this._suppressBackups = false;
+    this.afterSave();
+  },
+
+  markManualBackup() {
+    const now = new Date().toISOString();
+    localStorage.setItem(this.META_KEYS.lastManualBackupAt, now);
+    localStorage.removeItem(this.META_KEYS.backupSnoozedUntil);
+    return now;
+  },
+
+  snoozeBackupReminder(days = 3) {
+    const until = new Date(Date.now() + days * 86400000).toISOString();
+    localStorage.setItem(this.META_KEYS.backupSnoozedUntil, until);
+  },
+
+  getBackupInfo() {
+    return {
+      lastSavedAt: localStorage.getItem(this.META_KEYS.lastSavedAt) || '',
+      lastManualBackupAt: localStorage.getItem(this.META_KEYS.lastManualBackupAt) || '',
+      backupSnoozedUntil: localStorage.getItem(this.META_KEYS.backupSnoozedUntil) || '',
+    };
+  },
+
+  shouldShowBackupReminder(maxAgeDays = 7) {
+    const info = this.getBackupInfo();
+    if (info.backupSnoozedUntil && new Date(info.backupSnoozedUntil) > new Date()) return false;
+    if (!info.lastManualBackupAt) return true;
+    return Date.now() - new Date(info.lastManualBackupAt).getTime() > maxAgeDays * 86400000;
   },
 
   /** Strip computed fields & migrate legacy v1.0 data */

@@ -33,6 +33,7 @@ const Projects = {
 
   openCreate() {
     document.getElementById('project-id').value = '';
+    document.getElementById('project-from-completed').value = '';
     document.getElementById('modal-project-title').textContent = 'Новий проєкт';
     document.getElementById('project-name').value = '';
     document.getElementById('project-type').value = '';
@@ -140,7 +141,7 @@ const Projects = {
 
   save() {
     const id = document.getElementById('project-id').value;
-    const fromCompleted = document.getElementById('project-from-completed').value === '1';
+    const fromCompleted = !!id && document.getElementById('project-from-completed').value === '1';
     const raw = this.buildRawFromForm();
 
     if (!raw.name) { showToast('Введіть назву проєкту', 'error'); return; }
@@ -250,6 +251,8 @@ const Projects = {
     const tbody = document.getElementById('tbody-active-projects');
     const filtered = this.filterProjects(Storage.getProjects());
     const clients = Storage.getClients();
+    const typeOrder = { IT: 1, Video: 2, Design: 3 };
+    filtered.sort((a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99));
 
     if (!filtered.length) {
       tbody.innerHTML = `<tr class="empty-row"><td colspan="14"><div class="empty-state"><span>Немає активних проєктів</span><small>Натисніть «Новий проєкт», щоб додати</small></div></td></tr>`;

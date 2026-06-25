@@ -29,6 +29,13 @@ const Utils = {
     const months = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'];
     return `${months[parseInt(m, 10) - 1]} ${y}`;
   },
+  formatDateTime(str) {
+    if (!str) return '—';
+    return new Date(str).toLocaleString('uk-UA', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  },
 };
 
 const Banks = {
@@ -150,9 +157,11 @@ const pages = {
   clients: 'page-clients',
   specialists: 'page-specialists',
   partners: 'page-partners',
+  leadgen: 'page-leadgen',
   finance: 'page-finance',
   debts: 'page-debts',
   savings: 'page-savings',
+  settings: 'page-settings',
 };
 
 function navigateTo(page) {
@@ -170,9 +179,11 @@ function navigateTo(page) {
   if (page === 'clients') Clients.render();
   if (page === 'specialists') Specialists.render();
   if (page === 'partners') Partners.render();
+  if (page === 'leadgen') LeadGen.render();
   if (page === 'finance') Finance.render();
   if (page === 'debts') Debts.render();
   if (page === 'savings') Savings.render();
+  if (page === 'settings') Settings.render();
 
   closeSidebar();
 }
@@ -182,6 +193,7 @@ function updateBadges() {
   document.getElementById('nav-badge-clients').textContent = Storage.getClients().length;
   document.getElementById('nav-badge-specialists').textContent = Storage.getSpecialists().length;
   document.getElementById('nav-badge-partners').textContent = Storage.getPartners().length;
+  document.getElementById('nav-badge-leads').textContent = Storage.getLeads().length;
 }
 
 function closeSidebar() {
@@ -196,24 +208,42 @@ function refreshAll() {
   if (document.getElementById('page-clients').classList.contains('active')) Clients.render();
   if (document.getElementById('page-specialists').classList.contains('active')) Specialists.render();
   if (document.getElementById('page-partners').classList.contains('active')) Partners.render();
+  if (document.getElementById('page-leadgen').classList.contains('active')) LeadGen.render();
   if (document.getElementById('page-finance').classList.contains('active')) Finance.render();
   if (document.getElementById('page-debts').classList.contains('active')) Debts.render();
   if (document.getElementById('page-savings').classList.contains('active')) Savings.render();
+  if (document.getElementById('page-settings').classList.contains('active')) Settings.render();
 }
 
-function exportBackup() {
-  const payload = Storage.exportData();
+function downloadJsonPayload(payload, filename) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const date = new Date().toISOString().slice(0, 10);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `webcrm-backup-${date}.json`;
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-  showToast('Backup файл завантажено');
+}
+
+function backupFilename(prefix = 'webcrm-backup') {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${prefix}-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}-${pad(d.getMinutes())}.json`;
+}
+
+function exportBackup() {
+  const payload = Storage.exportData();
+  downloadJsonPayload(payload, backupFilename('webcrm-export'));
+  showToast('Файл експорту завантажено');
+}
+
+function downloadManualBackup() {
+  Storage.markManualBackup();
+  downloadJsonPayload(Storage.exportData(), backupFilename('crm-backup'));
+  Settings.render();
+  showToast('Резервну копію завантажено');
 }
 
 function importBackupFile(file) {
@@ -259,6 +289,21 @@ document.getElementById('btn-import-data')?.addEventListener('click', () => {
 });
 document.getElementById('backup-file-input')?.addEventListener('change', (e) => {
   importBackupFile(e.target.files?.[0]);
+});
+document.getElementById('btn-download-manual-backup')?.addEventListener('click', downloadManualBackup);
+document.getElementById('btn-backup-now')?.addEventListener('click', downloadManualBackup);
+document.getElementById('btn-restore-manual-backup')?.addEventListener('click', () => {
+  const input = document.getElementById('manual-backup-input');
+  input.value = '';
+  input.click();
+});
+document.getElementById('manual-backup-input')?.addEventListener('change', (e) => {
+  importBackupFile(e.target.files?.[0]);
+});
+document.getElementById('btn-backup-later')?.addEventListener('click', () => {
+  Storage.snoozeBackupReminder();
+  Settings.render();
+  showToast('Нагадаю пізніше', 'info');
 });
 
 document.querySelectorAll('[data-close]').forEach(el => {
