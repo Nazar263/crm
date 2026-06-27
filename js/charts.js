@@ -132,6 +132,57 @@ const Charts = {
     });
   },
 
+  renderMonthlyIncome(canvasId, instanceKey, transactions) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+
+    const monthsData = this.last12Months();
+    transactions.forEach(t => {
+      const key = Utils.getMonthKey(t.date || t.plannedDate);
+      if (t.type === 'income' && key && monthsData[key]) {
+        monthsData[key].financeIn += Number(t.amount) || 0;
+      }
+    });
+
+    const labels = Object.keys(monthsData).map(k => Utils.getMonthLabel(k));
+    const income = Object.values(monthsData).map(d => d.financeIn);
+    const defaults = this.chartDefaults();
+
+    this.destroy(instanceKey);
+    const ctx = el.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 200);
+    grad.addColorStop(0, 'rgba(45, 212, 191, 0.42)');
+    grad.addColorStop(1, 'rgba(45, 212, 191, 0)');
+
+    this.instances[instanceKey] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: income,
+          borderColor: '#2dd4bf',
+          backgroundColor: grad,
+          borderWidth: 2,
+          tension: 0.36,
+          fill: true,
+          pointBackgroundColor: '#2dd4bf',
+          pointRadius: 3,
+        }],
+      },
+      options: {
+        ...defaults,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` Дохід: ${Utils.formatMoney(ctx.parsed.y)}`,
+            },
+          },
+        },
+      },
+    });
+  },
+
   renderBankBalances(canvasId, instanceKey) {
     const el = document.getElementById(canvasId);
     if (!el) return;

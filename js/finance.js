@@ -5,6 +5,7 @@
 const Finance = {
   render() {
     this.renderSummary();
+    Charts.renderMonthlyIncome('chart-finance-income', 'financeIncome', Storage.getTransactions());
     Charts.renderBankBalances('chart-finance-banks', 'financeBanks');
     this.renderTable();
   },
