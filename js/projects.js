@@ -31,6 +31,24 @@ const Projects = {
     document.getElementById('project-specialist-debt').value = Utils.formatMoney(calc.specialistDebt);
   },
 
+  deadlineInfo(project) {
+    const deadlineDays = Number(project.deadlineDays) || 0;
+    const startDate = Calc.projectStartDate(project);
+    if (!deadlineDays || !startDate) {
+      return { text: '—', color: 'var(--text-secondary)' };
+    }
+
+    const passedDays = Utils.daysBetween(startDate, Utils.today());
+    const leftDays = deadlineDays - passedDays;
+    if (leftDays === 0) {
+      return { text: '0 дн.', color: 'var(--danger)' };
+    }
+    if (leftDays < 0) {
+      return { text: `${Math.abs(leftDays)} дн. простр.`, color: 'var(--danger)' };
+    }
+    return { text: `${leftDays} дн.`, color: 'var(--accent-green)' };
+  },
+
   openCreate() {
     document.getElementById('project-id').value = '';
     document.getElementById('project-from-completed').value = '';
@@ -39,6 +57,7 @@ const Projects = {
     document.getElementById('project-type').value = '';
     document.getElementById('project-status').value = 'В роботі';
     document.getElementById('project-start-date').value = Utils.today();
+    document.getElementById('project-deadline-days').value = '';
     document.getElementById('project-end-date').value = '';
     document.getElementById('project-client-name').value = '';
     document.getElementById('project-client-telegram').value = '';
@@ -76,6 +95,7 @@ const Projects = {
     document.getElementById('project-type').value = p.type;
     document.getElementById('project-status').value = p.status;
     document.getElementById('project-start-date').value = Calc.projectStartDate(p);
+    document.getElementById('project-deadline-days').value = p.deadlineDays || '';
     document.getElementById('project-end-date').value = p.endDate || '';
     document.getElementById('project-client-name').value = client ? client.name : p.clientName || '';
     document.getElementById('project-client-telegram').value = p.clientTelegram || client?.telegram || '';
@@ -120,6 +140,7 @@ const Projects = {
       type: document.getElementById('project-type').value,
       status: document.getElementById('project-status').value,
       startDate: document.getElementById('project-start-date').value,
+      deadlineDays: Number(document.getElementById('project-deadline-days').value) || 0,
       endDate: document.getElementById('project-end-date').value || '',
       clientId: client.id,
       clientName,
@@ -191,6 +212,7 @@ const Projects = {
       const completed = Storage.getCompleted();
       completed.push({
         ...p,
+        endDate: finishDate,
         finishDate,
         days,
         completedAt: Date.now(),
@@ -255,7 +277,7 @@ const Projects = {
     filtered.sort((a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99));
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="14"><div class="empty-state"><span>Немає активних проєктів</span><small>Натисніть «Новий проєкт», щоб додати</small></div></td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="15"><div class="empty-state"><span>Немає активних проєктів</span><small>Натисніть «Новий проєкт», щоб додати</small></div></td></tr>`;
       return;
     }
 
@@ -263,12 +285,14 @@ const Projects = {
       const client = clients.find(c => c.id === p.clientId);
       const clientName = client ? client.name : p.clientName || '—';
       const calc = Calc.project(p);
+      const deadline = this.deadlineInfo(p);
       return `
         <tr>
           <td><strong>${Utils.escHtml(p.name)}</strong></td>
           <td>${typeBadge(p.type)}</td>
           <td>${Utils.escHtml(clientName)}</td>
           <td>${Utils.formatDate(Calc.projectStartDate(p))}</td>
+          <td style="color:${deadline.color}">${Utils.escHtml(deadline.text)}</td>
           <td>${Utils.formatMoney(calc.budget)}</td>
           <td>${p.bank ? bankBadge(p.bank) : '<span style="color:var(--text-secondary)">—</span>'}</td>
           <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.clientDebt)}</td>

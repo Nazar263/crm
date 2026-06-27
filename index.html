@@ -215,8 +215,8 @@
       <div class="tab-content active" id="tab-active">
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Назва</th><th>Тип</th><th>Клієнт</th><th>Старт</th><th>Бюджет</th><th>Банк</th><th>Борг клієнта</th><th>Фахівець</th><th>Борг фахівцю</th><th>Прибуток</th><th>Забрав собі</th><th>Лишилось</th><th>Статус</th><th>Дії</th></tr></thead>
-            <tbody id="tbody-active-projects"><tr class="empty-row"><td colspan="14"><div class="empty-state"><span>Немає активних проєктів</span></div></td></tr></tbody>
+            <thead><tr><th>Назва</th><th>Тип</th><th>Клієнт</th><th>Старт</th><th>Дедлайн</th><th>Бюджет</th><th>Банк</th><th>Борг клієнта</th><th>Фахівець</th><th>Борг фахівцю</th><th>Прибуток</th><th>Забрав собі</th><th>Лишилось</th><th>Статус</th><th>Дії</th></tr></thead>
+            <tbody id="tbody-active-projects"><tr class="empty-row"><td colspan="15"><div class="empty-state"><span>Немає активних проєктів</span></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -503,6 +503,7 @@
           <div class="form-group"><label class="form-label">Тип *</label><select class="form-input" id="project-type"><option value="">Оберіть тип</option><option value="IT">IT</option><option value="Design">Design</option><option value="Video">Video</option></select></div>
           <div class="form-group"><label class="form-label">Статус *</label><select class="form-input" id="project-status"><option value="В роботі">В роботі</option><option value="На паузі">На паузі</option><option value="На перевірці">На перевірці</option></select></div>
           <div class="form-group"><label class="form-label">Дата старту *</label><input type="date" class="form-input" id="project-start-date"></div>
+          <div class="form-group"><label class="form-label">Дедлайн (днів)</label><input type="number" class="form-input" id="project-deadline-days" min="0" placeholder="Наприклад: 2"></div>
           <div class="form-group"><label class="form-label">Дата завершення (ручна)</label><input type="date" class="form-input" id="project-end-date"></div>
           <div class="form-group"><label class="form-label">Фахівець</label><select class="form-input" id="project-specialist"><option value="">— без фахівця —</option></select></div>
           <div class="form-group"><label class="form-label">Партнер</label><select class="form-input" id="project-partner"><option value="">— без партнера —</option></select></div>
