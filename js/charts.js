@@ -40,13 +40,13 @@ const Charts = {
     completed.forEach(p => {
       const key = Utils.getMonthKey(Calc.projectEndDate(p));
       if (key && monthsData[key]) {
-        monthsData[key].income += Calc.project(p).projectProfit;
+        monthsData[key].income += Calc.project(p).budget;
         monthsData[key].count += 1;
       }
     });
 
     const labels = Object.keys(monthsData).map(k => Utils.getMonthLabel(k));
-    const incomes = Object.values(monthsData).map(d => d.income);
+    const closedBudgets = Object.values(monthsData).map(d => d.income);
     const counts = Object.values(monthsData).map(d => d.count);
     const defaults = this.chartDefaults();
 
@@ -60,7 +60,7 @@ const Charts = {
       data: {
         labels,
         datasets: [{
-          data: incomes,
+          data: closedBudgets,
           borderColor: '#4f9cf9',
           backgroundColor: gradI,
           borderWidth: 2,
@@ -70,7 +70,17 @@ const Charts = {
           pointRadius: 3,
         }],
       },
-      options: defaults,
+      options: {
+        ...defaults,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` Закрито: ${Utils.formatMoney(ctx.parsed.y)}`,
+            },
+          },
+        },
+      },
     });
 
     this.destroy('projects');
