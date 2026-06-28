@@ -36,9 +36,13 @@ const Specialists = {
             </div>
           </div>
           ${d.telegram ? `<div class="dev-contact">${Utils.escHtml(d.telegram)}</div>` : ''}
-          <div class="dev-stats dev-stats--3">
+          <div class="dev-stats dev-stats--4">
             <div class="dev-stat">
-              <div class="dev-stat-label">Проєктів</div>
+              <div class="dev-stat-label">Активних</div>
+              <div class="dev-stat-value" style="color:${stats.activeCount > 0 ? 'var(--accent-blue)' : 'var(--text-primary)'}">${stats.activeCount}</div>
+            </div>
+            <div class="dev-stat">
+              <div class="dev-stat-label">Завершено</div>
               <div class="dev-stat-value">${stats.count}</div>
             </div>
             <div class="dev-stat">

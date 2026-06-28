@@ -334,6 +334,7 @@ const Calc = {
   },
 
   specialistStats(specialistId) {
+    const active = Storage.getProjects().filter(p => p.developerId === specialistId);
     const completed = Storage.getCompleted().filter(p => p.developerId === specialistId);
     let totalCost = 0, totalPaid = 0;
     completed.forEach(p => {
@@ -342,6 +343,7 @@ const Calc = {
       totalPaid += c.paidToSpecialist;
     });
     return {
+      activeCount: active.length,
       count: completed.length,
       totalCost,
       totalPaid,
