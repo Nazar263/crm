@@ -344,6 +344,19 @@
 
       <div class="finance-summary">
         <div class="stat-card"><div class="stat-info"><span class="stat-label">Баланс</span><span class="stat-value" id="finance-balance">₴0</span></div></div>
+        <div class="finance-converter">
+          <div class="converter-rates">
+            <label><span>$</span><input type="number" class="form-input" id="finance-usd-rate" min="0" step="0.01"></label>
+            <label><span>€</span><input type="number" class="form-input" id="finance-eur-rate" min="0" step="0.01"></label>
+          </div>
+          <div class="converter-flow">
+            <select class="form-input" id="conversion-from"></select>
+            <span class="converter-arrow">→</span>
+            <select class="form-input" id="conversion-to"></select>
+            <input type="number" class="form-input" id="conversion-amount" min="0" step="0.01" placeholder="Сума">
+            <button class="btn btn-ghost" id="btn-save-conversion">Конвертація</button>
+          </div>
+        </div>
       </div>
 
       <div class="charts-grid charts-grid--2">
@@ -360,6 +373,7 @@
           <option value="">Усі типи</option>
           <option value="income">Дохід</option>
           <option value="expense">Витрата</option>
+          <option value="transfer">Конвертація</option>
         </select>
       </div>
 
@@ -592,7 +606,7 @@
         <input type="hidden" id="transaction-id">
         <div class="form-grid">
           <div class="form-group"><label class="form-label">Тип *</label><select class="form-input" id="transaction-type"><option value="income">Дохід</option><option value="expense">Витрата</option></select></div>
-          <div class="form-group"><label class="form-label">Сума (₴) *</label><input type="number" class="form-input" id="transaction-amount" min="0"></div>
+          <div class="form-group"><label class="form-label">Сума *</label><input type="number" class="form-input" id="transaction-amount" min="0" step="0.01"></div>
           <div class="form-group"><label class="form-label">Банк *</label><select class="form-input" id="transaction-bank"><option value="">Оберіть банк</option><option value="mono">Monobank</option><option value="privat">PrivatBank</option><option value="cash">Готівка</option></select></div>
           <div class="form-group"><label class="form-label">Категорія</label><input type="text" class="form-input" id="transaction-category" placeholder="Проєкт, офіс, реклама..."></div>
           <div class="form-group form-group--full"><label class="form-label">Опис</label><input type="text" class="form-input" id="transaction-description"></div>

@@ -4,10 +4,21 @@
 
 const Finance = {
   render() {
+    this.renderConverter();
     this.renderSummary();
     Charts.renderMonthlyIncome('chart-finance-income', 'financeIncome', Storage.getTransactions());
     Charts.renderBankBalances('chart-finance-banks', 'financeBanks');
     this.renderTable();
+  },
+
+  renderConverter() {
+    const settings = Storage.getFinanceSettings();
+    const usd = document.getElementById('finance-usd-rate');
+    const eur = document.getElementById('finance-eur-rate');
+    if (usd && !usd.value) usd.value = settings.usdRate;
+    if (eur && !eur.value) eur.value = settings.eurRate;
+    Banks.populateSelect('conversion-from', document.getElementById('conversion-from')?.value || 'mono', 'Звідки');
+    Banks.populateSelect('conversion-to', document.getElementById('conversion-to')?.value || 'cash', 'Куди');
   },
 
   renderSummary() {
@@ -43,12 +54,13 @@ const Finance = {
     }
 
     tbody.innerHTML = filtered.map(t => {
+      if (t.type === 'transfer') return this.renderTransferRow(t);
       const amountColor = t.type === 'income' ? 'var(--accent-green)' : 'var(--accent-orange)';
       const sign = t.type === 'income' ? '+' : '−';
       return `
         <tr>
           <td>${financeTypeBadge(t.type)}</td>
-          <td style="color:${amountColor};font-weight:600">${sign}${Utils.formatMoney(t.amount)}</td>
+          <td style="color:${amountColor};font-weight:600">${sign}${this.formatBankAmount(t.amount, t.bank)}</td>
           <td>${bankBadge(t.bank)}</td>
           <td>${Utils.escHtml(t.category || '—')}</td>
           <td>${Utils.escHtml(t.description || '—')}</td>
@@ -65,6 +77,33 @@ const Finance = {
           </td>
         </tr>`;
     }).join('');
+  },
+
+  renderTransferRow(t) {
+    return `
+      <tr>
+        <td><span class="badge badge--blue">Конвертація</span></td>
+        <td style="color:var(--accent-blue);font-weight:600">${this.formatBankAmount(t.amount, t.bank)} → ${this.formatBankAmount(t.targetAmount ?? t.amount, t.toBank)}</td>
+        <td>${bankBadge(t.bank)} → ${bankBadge(t.toBank)}</td>
+        <td>Конвертація</td>
+        <td>${Utils.escHtml(t.description || '—')}</td>
+        <td>${Utils.formatDate(t.date || t.plannedDate)}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn-icon btn-icon--danger" title="Видалити" onclick="Finance.delete('${t.id}')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2"/><path d="M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2"/><path d="M9 6V4h6v2" stroke="currentColor" stroke-width="2"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  },
+
+  formatBankAmount(amount, bankId) {
+    const currency = Calc.bankCurrency(bankId);
+    const value = Number(amount) || 0;
+    if (currency === 'USD') return '$' + value.toLocaleString('uk-UA', { maximumFractionDigits: 2 });
+    if (currency === 'EUR') return '€' + value.toLocaleString('uk-UA', { maximumFractionDigits: 2 });
+    return Utils.formatMoney(value);
   },
 
   openCreate(type = 'income') {
@@ -125,6 +164,56 @@ const Finance = {
     Dashboard.render();
   },
 
+  saveRates() {
+    Storage.saveFinanceSettings({
+      usdRate: document.getElementById('finance-usd-rate')?.value,
+      eurRate: document.getElementById('finance-eur-rate')?.value,
+    });
+  },
+
+  convertAmount(amount, fromBank, toBank) {
+    const fromCurrency = Calc.bankCurrency(fromBank);
+    const toCurrency = Calc.bankCurrency(toBank);
+    if (fromCurrency === toCurrency) return Number(amount) || 0;
+
+    const source = Number(amount) || 0;
+    const uah = source * Calc.rateForCurrency(fromCurrency);
+    return uah / Calc.rateForCurrency(toCurrency);
+  },
+
+  saveConversion() {
+    this.saveRates();
+    const fromBank = document.getElementById('conversion-from').value;
+    const toBank = document.getElementById('conversion-to').value;
+    const amount = Number(document.getElementById('conversion-amount').value) || 0;
+
+    if (!fromBank || !toBank) { showToast('Оберіть рахунки для конвертації', 'error'); return; }
+    if (fromBank === toBank) { showToast('Оберіть різні рахунки', 'error'); return; }
+    if (!amount) { showToast('Введіть суму конвертації', 'error'); return; }
+
+    const targetAmount = this.convertAmount(amount, fromBank, toBank);
+    const transactions = Storage.getTransactions();
+    transactions.push({
+      id: Storage.generateId(),
+      type: 'transfer',
+      bank: fromBank,
+      toBank,
+      amount,
+      targetAmount,
+      rate: Calc.rateForCurrency(Calc.bankCurrency(fromBank)) || Calc.rateForCurrency(Calc.bankCurrency(toBank)),
+      category: 'Конвертація',
+      description: `${Banks.label(fromBank)} → ${Banks.label(toBank)}`,
+      date: Utils.today(),
+      status: 'done',
+    });
+
+    Storage.saveTransactions(transactions);
+    document.getElementById('conversion-amount').value = '';
+    this.render();
+    Dashboard.render();
+    showToast('Конвертацію збережено');
+  },
+
   delete(id) {
     showConfirm('Видалити транзакцію?', 'Транзакція буде видалена безповоротно.', () => {
       Storage.saveTransactions(Storage.getTransactions().filter(t => t.id !== id));
@@ -138,5 +227,13 @@ const Finance = {
 document.getElementById('btn-add-income').addEventListener('click', () => Finance.openCreate('income'));
 document.getElementById('btn-add-expense').addEventListener('click', () => Finance.openCreate('expense'));
 document.getElementById('btn-save-finance').addEventListener('click', () => Finance.save());
+document.getElementById('btn-save-conversion')?.addEventListener('click', () => Finance.saveConversion());
+['finance-usd-rate', 'finance-eur-rate'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', () => {
+    Finance.saveRates();
+    Finance.render();
+    Dashboard.render();
+  });
+});
 document.getElementById('finance-search').addEventListener('input', () => Finance.renderTable());
 document.getElementById('finance-filter-type').addEventListener('change', () => Finance.renderTable());

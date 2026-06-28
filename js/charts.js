@@ -106,8 +106,8 @@ const Charts = {
     transactions.forEach(t => {
       const key = Utils.getMonthKey(t.date || t.plannedDate);
       if (key && monthsData[key]) {
-        if (t.type === 'income') monthsData[key].financeIn += Number(t.amount) || 0;
-        else monthsData[key].financeOut += Number(t.amount) || 0;
+        if (t.type === 'income') monthsData[key].financeIn += Calc.bankAmountToUah(t.amount, t.bank);
+        else if (t.type === 'expense') monthsData[key].financeOut += Calc.bankAmountToUah(t.amount, t.bank);
       }
     });
 
@@ -140,7 +140,7 @@ const Charts = {
     transactions.forEach(t => {
       const key = Utils.getMonthKey(t.date || t.plannedDate);
       if (t.type === 'income' && key && monthsData[key]) {
-        monthsData[key].financeIn += Number(t.amount) || 0;
+        monthsData[key].financeIn += Calc.bankAmountToUah(t.amount, t.bank);
       }
     });
 

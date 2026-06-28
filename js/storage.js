@@ -20,6 +20,7 @@ const Storage = {
     lastSavedAt: 'crm_last_saved_at',
     lastManualBackupAt: 'crm_last_manual_backup_at',
     backupSnoozedUntil: 'crm_backup_snoozed_until',
+    financeSettings: 'crm_finance_settings',
   },
 
   BACKUP_KEYS: ['crm_backup_1', 'crm_backup_2', 'crm_backup_3', 'crm_backup_4', 'crm_backup_5'],
@@ -48,6 +49,8 @@ const Storage = {
     if (!v) return '';
     if (v === 'mono' || v.includes('monobank') || v.includes('моно')) return 'mono';
     if (v === 'privat' || v.includes('privatbank') || v.includes('приват')) return 'privat';
+    if (v === 'cash_usd' || v.includes('готівка $') || v.includes('cash usd') || v.includes('usd')) return 'cash_usd';
+    if (v === 'cash_eur' || v.includes('готівка €') || v.includes('cash eur') || v.includes('eur')) return 'cash_eur';
     if (v === 'cash' || v.includes('готів') || v.includes('gotiv')) return 'cash';
     return '';
   },
@@ -80,6 +83,26 @@ const Storage = {
   saveSavings(d) { this.set(this.KEYS.savings, d); },
   saveLeads(d) { this.set(this.KEYS.leads, d); },
   saveLeadFilters(d) { this.set(this.KEYS.leadFilters, d); },
+
+  getFinanceSettings() {
+    try {
+      return {
+        usdRate: 41,
+        eurRate: 44,
+        ...(JSON.parse(localStorage.getItem(this.META_KEYS.financeSettings)) || {}),
+      };
+    } catch {
+      return { usdRate: 41, eurRate: 44 };
+    }
+  },
+
+  saveFinanceSettings(settings) {
+    localStorage.setItem(this.META_KEYS.financeSettings, JSON.stringify({
+      usdRate: Number(settings.usdRate) || 41,
+      eurRate: Number(settings.eurRate) || 44,
+    }));
+    this.afterSave();
+  },
 
   getAllProjects() {
     return [...this.getProjects(), ...this.getCompleted()];
@@ -114,6 +137,7 @@ const Storage = {
       version: 1,
       exportedAt: new Date().toISOString(),
       data,
+      financeSettings: this.getFinanceSettings(),
     };
     if (includeMeta) payload.meta = this.getBackupInfo();
     return payload;
@@ -132,6 +156,7 @@ const Storage = {
 
     this._suppressBackups = true;
     Object.entries(nextData).forEach(([key, value]) => this.set(key, value));
+    if (payload.financeSettings) this.saveFinanceSettings(payload.financeSettings);
     ['crm_migrated_v11', 'crm_migrated_v12', 'crm_migrated_v13', 'crm_migrated_v14'].forEach(key => localStorage.removeItem(key));
     this.migrate();
     this._suppressBackups = false;
@@ -355,20 +380,43 @@ const Calc = {
     };
   },
 
+  bankCurrency(bankId) {
+    const bank = Storage.normalizeBank(bankId);
+    if (bank === 'cash_usd') return 'USD';
+    if (bank === 'cash_eur') return 'EUR';
+    return 'UAH';
+  },
+
+  rateForCurrency(currency) {
+    const settings = Storage.getFinanceSettings();
+    if (currency === 'USD') return Number(settings.usdRate) || 41;
+    if (currency === 'EUR') return Number(settings.eurRate) || 44;
+    return 1;
+  },
+
+  bankAmountToUah(amount, bankId) {
+    return (Number(amount) || 0) * this.rateForCurrency(this.bankCurrency(bankId));
+  },
+
   financeBalance(transactions) {
-    const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    return income - expense;
+    const balances = this.bankBalances(transactions);
+    return Object.values(balances).reduce((sum, amount) => sum + amount, 0);
   },
 
   bankBalances(transactions = Storage.getTransactions()) {
-    const balances = { mono: 0, privat: 0, cash: 0 };
+    const balances = { mono: 0, privat: 0, cash: 0, cash_usd: 0, cash_eur: 0 };
     transactions.forEach(t => {
       const bank = Storage.normalizeBank(t.bank);
       if (!bank) return;
-      const amount = Number(t.amount) || 0;
+      const amount = this.bankAmountToUah(t.amount, bank);
       if (t.type === 'income') balances[bank] += amount;
       else if (t.type === 'expense') balances[bank] -= amount;
+      else if (t.type === 'transfer') {
+        const toBank = Storage.normalizeBank(t.toBank);
+        if (!toBank) return;
+        balances[bank] -= amount;
+        balances[toBank] = (balances[toBank] || 0) + this.bankAmountToUah(t.targetAmount ?? t.amount, toBank);
+      }
     });
     return balances;
   },
