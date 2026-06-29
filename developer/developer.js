@@ -7,9 +7,9 @@
   RAW SPECIALIST FIELDS (LocalStorage: 'specialists'):
   { id, name, specialization, telegram }
 
-  COMPUTED з ЗАВЕРШЕНИХ проєктів (Calc.specialistStats):
+  COMPUTED з проєктів (Calc.specialistStats):
   - count      — виконані проєкти
   - totalCost  — загальна сума виплат (specialistCost)
   - totalPaid  — виплачено (paidToSpecialist)
-  - debt       — борг (totalCost - totalPaid)
+  - debt       — борг фахівцю з активних і завершених проєктів
 */

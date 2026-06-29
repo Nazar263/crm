@@ -1,5 +1,5 @@
 /* =============================================
-   specialists.js — Фахівці (stats from completed only)
+   specialists.js — Фахівці
    ============================================= */
 
 const Specialists = {
