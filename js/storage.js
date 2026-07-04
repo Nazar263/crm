@@ -293,16 +293,19 @@ const Calc = {
     const profitTaken = Number(p.profitTaken) || 0;
     const partnerCommission = Number(p.partnerCommission) || 0;
 
+    const paidAmount = Math.min(budget, Math.max(prepayment, 0));
     const projectProfit = Math.round(budget * myPercent / 100);
+    const receivedProfit = Math.round(paidAmount * myPercent / 100);
     const specialistCost = budget - projectProfit;
     const clientDebt = budget - prepayment;
     const specialistDebt = specialistCost - paidToSpecialist;
     const remainingPayment = budget - prepayment;
-    const profitLeft = projectProfit - profitTaken;
+    const profitLeft = receivedProfit - profitTaken;
 
     return {
       budget, specialistCost, prepayment, paidToSpecialist, myPercent, profitTaken, partnerCommission,
       projectProfit, clientDebt, specialistDebt, remainingPayment, profitLeft,
+      paidAmount, receivedProfit,
     };
   },
 
@@ -312,6 +315,15 @@ const Calc = {
 
   projectEndDate(p) {
     return p.endDate || p.finishDate || '';
+  },
+
+  projectPaymentDate(p) {
+    if (p.paymentDate) return p.paymentDate;
+    const prepayment = Number(p.prepayment) || 0;
+    if (prepayment > 0) {
+      return this.projectStartDate(p) || this.projectEndDate(p) || p.createdAt?.split('T')[0] || '';
+    }
+    return this.projectEndDate(p) || this.projectStartDate(p) || p.createdAt?.split('T')[0] || '';
   },
 
   clientStats(clientId) {
@@ -466,10 +478,10 @@ const Calc = {
     let totalBudget = 0, totalProfit = 0;
     let clientDebts = 0, specialistDebts = 0, partnerDebts = 0;
 
-    completed.forEach(p => {
+    all.forEach(p => {
       const c = Calc.project(p);
-      totalBudget += c.budget;
-      totalProfit += c.projectProfit;
+      totalBudget += c.paidAmount;
+      totalProfit += c.receivedProfit;
     });
 
     all.forEach(p => {

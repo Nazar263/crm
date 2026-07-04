@@ -35,7 +35,7 @@ function init() {
   Projects.renderAll();
 
   document.getElementById('card-month-income')?.addEventListener('click', () => {
-    Charts.renderAgencyIncome(Storage.getCompleted());
+    Charts.renderAgencyIncome([...Storage.getProjects(), ...Storage.getCompleted()]);
     openModal('modal-agency-income');
   });
 }

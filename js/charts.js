@@ -35,13 +35,16 @@ const Charts = {
     return monthsData;
   },
 
-  renderProjects(completed) {
+  renderProjects(projects) {
     const monthsData = this.last12Months();
-    completed.forEach(p => {
-      const key = Utils.getMonthKey(Calc.projectEndDate(p));
+    projects.forEach(p => {
+      const key = Utils.getMonthKey(Calc.projectPaymentDate(p));
       if (key && monthsData[key]) {
-        monthsData[key].income += Calc.project(p).budget;
-        monthsData[key].count += 1;
+        const paidAmount = Calc.project(p).paidAmount;
+        if (paidAmount > 0) {
+          monthsData[key].income += paidAmount;
+          monthsData[key].count += 1;
+        }
       }
     });
 
@@ -76,7 +79,7 @@ const Charts = {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx) => ` Закрито: ${Utils.formatMoney(ctx.parsed.y)}`,
+              label: (ctx) => ` Отримано: ${Utils.formatMoney(ctx.parsed.y)}`,
             },
           },
         },
@@ -101,12 +104,12 @@ const Charts = {
     });
   },
 
-  renderAgencyIncome(completed) {
+  renderAgencyIncome(projects) {
     const monthsData = this.last12Months();
-    completed.forEach(p => {
-      const key = Utils.getMonthKey(Calc.projectEndDate(p));
+    projects.forEach(p => {
+      const key = Utils.getMonthKey(Calc.projectPaymentDate(p));
       if (key && monthsData[key]) {
-        monthsData[key].income += Calc.project(p).projectProfit;
+        monthsData[key].income += Calc.project(p).receivedProfit;
       }
     });
 
@@ -419,9 +422,9 @@ const Charts = {
   },
 
   renderAll() {
-    const completed = Storage.getCompleted();
+    const projects = [...Storage.getProjects(), ...Storage.getCompleted()];
     const transactions = Storage.getTransactions();
-    this.renderProjects(completed);
+    this.renderProjects(projects);
     this.renderFinance(transactions);
     this.renderBankBalances('chart-banks', 'banks');
     this.renderSavings('chart-savings-goals', 'savingsGoals');
