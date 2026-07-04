@@ -350,6 +350,32 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+.stat-card--clickable {
+  cursor: pointer;
+}
+
+.modal-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.modal-stat-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.modal-stat-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .stat-card--highlight {
   background: linear-gradient(135deg, rgba(250, 204, 21, 0.10), rgba(45, 212, 191, 0.04));
   border-color: rgba(250, 204, 21, 0.24);

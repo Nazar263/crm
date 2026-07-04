@@ -33,6 +33,11 @@ function init() {
   updateBadges();
   Dashboard.render();
   Projects.renderAll();
+
+  document.getElementById('card-month-income')?.addEventListener('click', () => {
+    Charts.renderAgencyIncome(Storage.getCompleted());
+    openModal('modal-agency-income');
+  });
 }
 
 init();

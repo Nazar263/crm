@@ -101,6 +101,58 @@ const Charts = {
     });
   },
 
+  renderAgencyIncome(completed) {
+    const monthsData = this.last12Months();
+    completed.forEach(p => {
+      const key = Utils.getMonthKey(Calc.projectEndDate(p));
+      if (key && monthsData[key]) {
+        monthsData[key].income += Calc.project(p).projectProfit;
+      }
+    });
+
+    const labels = Object.keys(monthsData).map(k => Utils.getMonthLabel(k));
+    const income = Object.values(monthsData).map(d => d.income);
+    const currentMonthKey = Utils.getMonthKey(Utils.today());
+    const currentMonthIncome = monthsData[currentMonthKey]?.income || 0;
+    const labelEl = document.getElementById('agency-income-current-month');
+    if (labelEl) labelEl.textContent = Utils.formatMoney(currentMonthIncome);
+    const defaults = this.chartDefaults();
+
+    this.destroy('agencyIncome');
+    const ctx = document.getElementById('chart-agency-income').getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 200);
+    grad.addColorStop(0, 'rgba(250, 204, 21, 0.35)');
+    grad.addColorStop(1, 'rgba(250, 204, 21, 0)');
+
+    this.instances.agencyIncome = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: income,
+          borderColor: '#facc15',
+          backgroundColor: grad,
+          borderWidth: 2,
+          tension: 0.35,
+          fill: true,
+          pointBackgroundColor: '#facc15',
+          pointRadius: 3,
+        }],
+      },
+      options: {
+        ...defaults,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` Дохід: ${Utils.formatMoney(ctx.parsed.y)}`,
+            },
+          },
+        },
+      },
+    });
+  },
+
   renderFinance(transactions) {
     const monthsData = this.last12Months();
     transactions.forEach(t => {
