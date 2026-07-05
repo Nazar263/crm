@@ -300,7 +300,10 @@ const Calc = {
     const clientDebt = budget - prepayment;
     const specialistDebt = specialistCost - paidToSpecialist;
     const remainingPayment = budget - prepayment;
-    const profitLeft = receivedProfit - profitTaken;
+    // Remaining profit should reflect how much of the total project profit is still not taken.
+    // Use projectProfit - profitTaken so UI shows remaining portion of full profit,
+    // not only the portion already received via prepayment.
+    const profitLeft = projectProfit - profitTaken;
 
     return {
       budget, specialistCost, prepayment, paidToSpecialist, myPercent, profitTaken, partnerCommission,
