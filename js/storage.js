@@ -295,19 +295,19 @@ const Calc = {
 
     const paidAmount = Math.min(budget, Math.max(prepayment, 0));
     const projectProfit = Math.round(budget * myPercent / 100);
+    const myIncome = Math.max(0, projectProfit - partnerCommission);
     const receivedProfit = Math.round(paidAmount * myPercent / 100);
     const specialistCost = budget - projectProfit;
     const clientDebt = budget - prepayment;
     const specialistDebt = specialistCost - paidToSpecialist;
     const remainingPayment = budget - prepayment;
-    // Remaining profit should reflect how much of the total project profit is still not taken.
-    // Use projectProfit - profitTaken so UI shows remaining portion of full profit,
-    // not only the portion already received via prepayment.
-    const profitLeft = projectProfit - profitTaken;
+    // Remaining profit should reflect how much of the project's net income is still not taken,
+    // after the partner commission has been deducted.
+    const profitLeft = myIncome - profitTaken;
 
     return {
       budget, specialistCost, prepayment, paidToSpecialist, myPercent, profitTaken, partnerCommission,
-      projectProfit, clientDebt, specialistDebt, remainingPayment, profitLeft,
+      projectProfit, myIncome, clientDebt, specialistDebt, remainingPayment, profitLeft,
       paidAmount, receivedProfit,
     };
   },
@@ -375,7 +375,7 @@ const Calc = {
       const c = this.project(p);
       totalDeals += c.budget;
       totalCommission += c.partnerCommission;
-      ourIncome += c.projectProfit;
+      ourIncome += c.myIncome;
     });
     const partner = Storage.getPartners().find(x => x.id === partnerId);
     const paidToPartner = Number(partner?.paidToPartner) || 0;

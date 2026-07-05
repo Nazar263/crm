@@ -22,8 +22,9 @@ const Projects = {
     const paidToSpecialist = Number(document.getElementById('project-paid-specialist').value) || 0;
     const myPercent = Number(document.getElementById('project-my-percent').value) || 0;
     const profitTaken = Number(document.getElementById('project-profit-taken').value) || 0;
+    const partnerCommission = Number(document.getElementById('project-partner-commission').value) || 0;
 
-    const calc = Calc.project({ budget, prepayment, paidToSpecialist, myPercent, profitTaken });
+    const calc = Calc.project({ budget, prepayment, paidToSpecialist, myPercent, profitTaken, partnerCommission });
     document.getElementById('project-specialist-cost').value = calc.specialistCost || '';
     document.getElementById('project-remaining').value = Utils.formatMoney(calc.remainingPayment);
     document.getElementById('project-profit').value = Utils.formatMoney(calc.projectProfit);
@@ -169,7 +170,8 @@ const Projects = {
     if (!raw.type) { showToast('Оберіть тип проєкту', 'error'); return; }
     if (!raw.startDate) { showToast('Вкажіть дату старту', 'error'); return; }
     if (!raw.clientName) { showToast('Введіть ім\'я клієнта', 'error'); return; }
-    if (raw.profitTaken > Calc.project(raw).projectProfit) { showToast('Забрана сума більша за прибуток проєкту', 'error'); return; }
+const calc = Calc.project(raw);
+      if (raw.profitTaken > calc.myIncome) { showToast('Забрана сума більша за ваш чистий дохід після комісії партнера', 'error'); return; }
 
     if (fromCompleted) {
       const completed = Storage.getCompleted();
@@ -299,6 +301,7 @@ const Projects = {
           <td>${Utils.formatMoney(calc.specialistCost)}</td>
           <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.specialistDebt)}</td>
           <td style="color:var(--accent-green)">${Utils.formatMoney(calc.projectProfit)}</td>
+          <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.partnerCommission)}</td>
           <td style="color:var(--accent-blue)">${Utils.formatMoney(calc.profitTaken)}</td>
           <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.profitLeft)}</td>
           <td>${statusBadge(p.status)}</td>
@@ -350,11 +353,12 @@ const Projects = {
           <td>${Utils.formatDate(Calc.projectEndDate(p))}</td>
           <td>${p.days ?? '—'} дн.</td>
           <td>${Utils.formatMoney(calc.budget)}</td>
+          <td>${Utils.formatMoney(calc.partnerCommission)}</td>
           <td>
             <div>${Utils.escHtml(specialistName)}</div>
             <div style="margin-top:2px;color:var(--text-secondary)">${Utils.formatMoney(calc.specialistCost)}</div>
           </td>
-          <td style="color:var(--accent-green)">${Utils.formatMoney(calc.projectProfit)}</td>
+          <td style="color:var(--accent-green)">${Utils.formatMoney(calc.myIncome)}</td>
           <td>
             <div class="actions-cell">
               <button class="btn-icon" title="Редагувати" onclick="Projects.openEdit('${p.id}', true)">
@@ -370,7 +374,7 @@ const Projects = {
   },
 };
 
-['project-budget', 'project-prepayment', 'project-paid-specialist', 'project-my-percent', 'project-profit-taken'].forEach(id => {
+['project-budget', 'project-prepayment', 'project-paid-specialist', 'project-my-percent', 'project-profit-taken', 'project-partner-commission'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', () => Projects.updateCalcPreview());
 });
 
