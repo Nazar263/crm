@@ -38,12 +38,13 @@ const Charts = {
   renderProjects(projects) {
     const monthsData = this.last12Months();
     projects.forEach(p => {
-      const key = Utils.getMonthKey(Calc.projectPaymentDate(p));
+      const projectDate = Calc.projectEndDate(p) || (p.completedAt ? new Date(p.completedAt).toISOString().split('T')[0] : p.createdAt?.split('T')[0] || '');
+      const key = Utils.getMonthKey(projectDate);
       if (key && monthsData[key]) {
         const paidAmount = Calc.project(p).paidAmount;
+        monthsData[key].count += 1;
         if (paidAmount > 0) {
           monthsData[key].income += paidAmount;
-          monthsData[key].count += 1;
         }
       }
     });
@@ -422,9 +423,9 @@ const Charts = {
   },
 
   renderAll() {
-    const projects = [...Storage.getProjects(), ...Storage.getCompleted()];
+    const completedProjects = Storage.getCompleted();
     const transactions = Storage.getTransactions();
-    this.renderProjects(projects);
+    this.renderProjects(completedProjects);
     this.renderFinance(transactions);
     this.renderBankBalances('chart-banks', 'banks');
     this.renderSavings('chart-savings-goals', 'savingsGoals');
