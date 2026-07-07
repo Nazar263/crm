@@ -353,7 +353,7 @@ const Calc = {
     const completed = Storage.getCompleted().filter(p => p.developerId === specialistId);
     const all = [...active, ...completed];
     let totalCost = 0, totalPaid = 0;
-    completed.forEach(p => {
+    all.forEach(p => {
       const c = this.project(p);
       totalCost += c.specialistCost;
       totalPaid += c.paidToSpecialist;
