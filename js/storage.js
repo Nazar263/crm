@@ -481,27 +481,10 @@ const Calc = {
 
     let totalBudget = 0, totalProfit = 0;
     let clientDebts = 0, specialistDebts = 0, partnerDebts = 0;
-    const projectIdsWithHistory = new Set();
 
-    const projectTransactions = transactions.filter(t => t.source && String(t.source).startsWith('project_'));
-    projectTransactions.forEach(t => {
-      const amount = Number(t.amount) || 0;
-      totalProfit += t.type === 'expense' ? -amount : amount;
-      if (t.projectId) projectIdsWithHistory.add(t.projectId);
-    });
-
-    all.forEach(p => {
+    completed.forEach(p => {
       const c = Calc.project(p);
-      totalBudget += c.paidAmount;
-    });
-
-    const cutoff = new Date('2026-07-08');
-    all.forEach(p => {
-      if (projectIdsWithHistory.has(p.id)) return;
-      const endDateStr = Calc.projectEndDate(p);
-      const endDate = endDateStr ? new Date(endDateStr) : null;
-      if (!endDate || endDate >= cutoff) return;
-      const c = Calc.project(p);
+      totalBudget += c.budget;
       totalProfit += Number(c.myIncome);
     });
 
@@ -524,7 +507,6 @@ const Calc = {
       .filter(t => {
         const key = Utils.getMonthKey(t.date || t.plannedDate);
         if (key !== monthKey) return false;
-        // Exclude project-created transactions to match the finance chart (only manual incomes)
         const isProjectSource = t.source && String(t.source).startsWith('project_');
         return t.type === 'income' && !isProjectSource;
       })

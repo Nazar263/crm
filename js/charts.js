@@ -107,37 +107,14 @@ const Charts = {
 
   renderAgencyIncome() {
     const monthsData = this.last12Months();
-    const transactions = Storage.getTransactions();
-    const projectIdsWithHistory = new Set();
-
-    // Sum project-related transactions first (these are authoritative)
-    transactions.forEach(t => {
-      if (!t.source || !String(t.source).startsWith('project_')) return;
-      const key = Utils.getMonthKey(t.date || t.plannedDate);
-      if (!key || !monthsData[key]) return;
-      const amount = Number(t.amount) || 0;
-      monthsData[key].income += t.type === 'expense' ? -amount : amount;
-      if (t.projectId) projectIdsWithHistory.add(t.projectId);
-    });
-
-    // Cutoff: projects completed before 8 July 2026 should be shown by their completion month.
-    // From 8 July 2026 onward we use live project payments / prepayments by entry date.
-    const cutoff = new Date('2026-07-08');
-    const projects = [...Storage.getProjects(), ...Storage.getCompleted()];
+    const projects = Storage.getCompleted();
     projects.forEach(p => {
-      // Only attribute older completed projects by their completion month if we do not have explicit project transactions.
-      if (projectIdsWithHistory.has(p.id)) return;
-
       const endDateStr = Calc.projectEndDate(p);
-      const endDate = endDateStr ? new Date(endDateStr) : null;
-      if (!endDate || endDate >= cutoff) return;
-
       const key = Utils.getMonthKey(endDateStr);
       if (!key || !monthsData[key]) return;
 
       const calc = Calc.project(p);
-      const historicIncome = Number(calc.myIncome);
-      if (historicIncome > 0) monthsData[key].income += historicIncome;
+      monthsData[key].income += Number(calc.myIncome);
     });
 
     const labels = Object.keys(monthsData).map(k => Utils.getMonthLabel(k));
