@@ -45,6 +45,23 @@ const Finance = {
       .sort((a, b) => new Date(b.date || b.plannedDate) - new Date(a.date || a.plannedDate));
   },
 
+  weekMarker(dateStr) {
+    const date = new Date(dateStr || Utils.today());
+    const day = (date.getDay() + 6) % 7;
+    const monday = new Date(date);
+    monday.setDate(date.getDate() - day);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const weekIndex = Math.floor(monday.getTime() / 604800000);
+
+    return {
+      className: weekIndex % 2 === 0 ? 'week-a' : 'week-b',
+      title: `${Utils.formatDate(monday.toISOString().slice(0, 10))} - ${Utils.formatDate(sunday.toISOString().slice(0, 10))}`,
+    };
+  },
+
   renderTable() {
     const tbody = document.getElementById('tbody-finance');
     const filtered = this.getFiltered();
@@ -58,14 +75,15 @@ const Finance = {
       if (t.type === 'transfer') return this.renderTransferRow(t);
       const amountColor = t.type === 'income' ? 'var(--accent-green)' : 'var(--accent-orange)';
       const sign = t.type === 'income' ? '+' : '−';
+      const week = this.weekMarker(t.date || t.plannedDate);
       return `
-        <tr>
+        <tr class="finance-row ${week.className}">
           <td>${financeTypeBadge(t.type)}</td>
           <td style="color:${amountColor};font-weight:600">${sign}${this.formatBankAmount(t.amount, t.bank)}</td>
           <td>${bankBadge(t.bank)}</td>
           <td>${Utils.escHtml(t.category || '—')}</td>
           <td>${Utils.escHtml(t.description || '—')}</td>
-          <td>${Utils.formatDate(t.date || t.plannedDate)}</td>
+          <td><span class="week-date"><span class="week-dot" title="${Utils.escHtml(week.title)}"></span>${Utils.formatDate(t.date || t.plannedDate)}</span></td>
           <td>
             <div class="actions-cell">
               <button class="btn-icon btn-icon--edit" title="Редагувати" onclick="Finance.openEdit('${t.id}')">
@@ -81,14 +99,15 @@ const Finance = {
   },
 
   renderTransferRow(t) {
+    const week = this.weekMarker(t.date || t.plannedDate);
     return `
-      <tr>
+      <tr class="finance-row ${week.className}">
         <td><span class="badge badge--blue">Конвертація</span></td>
         <td style="color:var(--accent-blue);font-weight:600">${this.formatBankAmount(t.amount, t.bank)} → ${this.formatBankAmount(t.targetAmount ?? t.amount, t.toBank)}</td>
         <td>${bankBadge(t.bank)} → ${bankBadge(t.toBank)}</td>
         <td>Конвертація</td>
         <td>${Utils.escHtml(t.description || '—')}</td>
-        <td>${Utils.formatDate(t.date || t.plannedDate)}</td>
+        <td><span class="week-date"><span class="week-dot" title="${Utils.escHtml(week.title)}"></span>${Utils.formatDate(t.date || t.plannedDate)}</span></td>
         <td>
           <div class="actions-cell">
             <button class="btn-icon btn-icon--danger" title="Видалити" onclick="Finance.delete('${t.id}')">
