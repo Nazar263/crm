@@ -105,13 +105,42 @@ const Charts = {
     });
   },
 
-  renderAgencyIncome(projects) {
+  renderAgencyIncome() {
     const monthsData = this.last12Months();
+    const transactions = Storage.getTransactions();
+    const projectIdsWithHistory = new Set();
+
+    // Sum project-related profit transactions first (these are authoritative)
+    transactions.forEach(t => {
+      if (t.source !== 'project_profit_taken') return;
+      const key = Utils.getMonthKey(t.date || t.plannedDate);
+      if (!key || !monthsData[key]) return;
+      const amount = Number(t.amount) || 0;
+      monthsData[key].income += t.type === 'expense' ? -amount : amount;
+      if (t.projectId) projectIdsWithHistory.add(t.projectId);
+    });
+
+    // Cutoff: projects completed before this date should be shown by their completion month
+    const cutoff = new Date('2026-07-01');
+    const projects = [...Storage.getProjects(), ...Storage.getCompleted()];
     projects.forEach(p => {
-      const key = Utils.getMonthKey(Calc.projectPaymentDate(p));
-      if (key && monthsData[key]) {
-        monthsData[key].income += Calc.project(p).receivedProfit;
+      const profitTaken = Number(p.profitTaken) || 0;
+      if (!profitTaken) return;
+
+      // If we already have transactions for this project, skip (transactions are authoritative)
+      if (projectIdsWithHistory.has(p.id)) return;
+
+      const endDateStr = Calc.projectEndDate(p);
+      const endDate = endDateStr ? new Date(endDateStr) : null;
+
+      // If project was completed before cutoff, attribute its taken profit to completion month
+      if (endDate && endDate < cutoff) {
+        const key = Utils.getMonthKey(endDateStr);
+        if (key && monthsData[key]) monthsData[key].income += profitTaken;
       }
+      // Otherwise: do not attribute historic sums here — recent/active changes should be
+      // recorded as `project_profit_taken` transactions (created on save) so they'll
+      // appear in the month when the change happened.
     });
 
     const labels = Object.keys(monthsData).map(k => Utils.getMonthLabel(k));
@@ -195,7 +224,9 @@ const Charts = {
     const monthsData = this.last12Months();
     transactions.forEach(t => {
       const key = Utils.getMonthKey(t.date || t.plannedDate);
-      if (t.type === 'income' && key && monthsData[key]) {
+      // Only include manual finance incomes here — ignore project-created transactions
+      const isProjectSource = t.source && String(t.source).startsWith('project_');
+      if (t.type === 'income' && !isProjectSource && key && monthsData[key]) {
         monthsData[key].financeIn += Calc.bankAmountToUah(t.amount, t.bank);
       }
     });

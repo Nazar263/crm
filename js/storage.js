@@ -503,8 +503,14 @@ const Calc = {
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const monthIncome = transactions
-      .filter(t => t.type === 'income' && Utils.getMonthKey(t.date || t.plannedDate) === monthKey)
-      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      .filter(t => {
+        const key = Utils.getMonthKey(t.date || t.plannedDate);
+        if (key !== monthKey) return false;
+        // Exclude project-created transactions to match the finance chart (only manual incomes)
+        const isProjectSource = t.source && String(t.source).startsWith('project_');
+        return t.type === 'income' && !isProjectSource;
+      })
+      .reduce((sum, t) => sum + Calc.bankAmountToUah(t.amount, t.bank), 0);
 
     const savings = Calc.savingsSummary();
 

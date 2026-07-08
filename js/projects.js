@@ -4,6 +4,7 @@
 
 const Projects = {
   currentTab: 'active',
+  _liveTimers: {},
 
   populateSpecialistSelect() {
     const devs = Storage.getSpecialists();
@@ -177,17 +178,89 @@ const calc = Calc.project(raw);
       const completed = Storage.getCompleted();
       const idx = completed.findIndex(p => p.id === id);
       if (idx >= 0) {
+        const prev = completed[idx];
         completed[idx] = { ...completed[idx], ...raw };
         Storage.saveCompleted(completed);
         showToast('Проєкт оновлено');
+        // Sync financial deltas (profit taken / prepayment)
+        const profitDelta = Number(raw.profitTaken) - Number(prev.profitTaken || 0);
+        const prepayDelta = Number(raw.prepayment) - Number(prev.prepayment || 0);
+        if (profitDelta !== 0 || prepayDelta !== 0) {
+          const tx = Storage.getTransactions();
+          if (profitDelta !== 0) {
+            tx.push({
+              id: Storage.generateId(),
+              type: profitDelta > 0 ? 'income' : 'expense',
+              amount: Math.abs(profitDelta),
+              bank: raw.bank || prev.bank || '',
+              category: 'Проєкт',
+              description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
+              date: Utils.today(),
+              status: 'done',
+              source: 'project_profit_taken',
+              projectId: id,
+            });
+          }
+          if (prepayDelta > 0) {
+            tx.push({
+              id: Storage.generateId(),
+              type: 'income',
+              amount: prepayDelta,
+              bank: raw.bank || prev.bank || '',
+              category: 'Передоплата',
+              description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
+              date: Utils.today(),
+              status: 'done',
+              source: 'project_prepayment',
+              projectId: id,
+            });
+          }
+          Storage.saveTransactions(tx);
+        }
       }
     } else if (id) {
       const active = Storage.getProjects();
       const idx = active.findIndex(p => p.id === id);
       if (idx >= 0) {
+        const prev = active[idx];
         active[idx] = { ...active[idx], ...raw };
         Storage.saveProjects(active);
         showToast('Проєкт оновлено');
+        // Sync financial deltas (profit taken / prepayment)
+        const profitDelta = Number(raw.profitTaken) - Number(prev.profitTaken || 0);
+        const prepayDelta = Number(raw.prepayment) - Number(prev.prepayment || 0);
+        if (profitDelta !== 0 || prepayDelta !== 0) {
+          const tx = Storage.getTransactions();
+          if (profitDelta !== 0) {
+            tx.push({
+              id: Storage.generateId(),
+              type: profitDelta > 0 ? 'income' : 'expense',
+              amount: Math.abs(profitDelta),
+              bank: raw.bank || prev.bank || '',
+              category: 'Проєкт',
+              description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
+              date: Utils.today(),
+              status: 'done',
+              source: 'project_profit_taken',
+              projectId: id,
+            });
+          }
+          if (prepayDelta > 0) {
+            tx.push({
+              id: Storage.generateId(),
+              type: 'income',
+              amount: prepayDelta,
+              bank: raw.bank || prev.bank || '',
+              category: 'Передоплата',
+              description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
+              date: Utils.today(),
+              status: 'done',
+              source: 'project_prepayment',
+              projectId: id,
+            });
+          }
+          Storage.saveTransactions(tx);
+        }
       }
     } else {
       const active = Storage.getProjects();
@@ -391,3 +464,68 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
   });
 });
+
+// Live-sync: when editing an existing project, apply prepayment/profitTaken deltas immediately
+function debounce(fn, wait) {
+  let t;
+  return function(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+function syncLive(field) {
+  const id = document.getElementById('project-id').value;
+  if (!id) return; // only sync for existing projects
+  const fromCompleted = document.getElementById('project-from-completed').value === '1';
+  const list = fromCompleted ? Storage.getCompleted() : Storage.getProjects();
+  const idx = list.findIndex(p => p.id === id);
+  if (idx < 0) return;
+
+  const prev = list[idx];
+  const raw = Projects.buildRawFromForm();
+
+  const profitDelta = Number(raw.profitTaken) - Number(prev.profitTaken || 0);
+  const prepayDelta = Number(raw.prepayment) - Number(prev.prepayment || 0);
+
+  // update project values in-place so UI reflects immediately
+  list[idx] = { ...prev, ...raw };
+  if (fromCompleted) Storage.saveCompleted(list); else Storage.saveProjects(list);
+
+  if (profitDelta === 0 && prepayDelta === 0) { refreshAll(); return; }
+
+  const tx = Storage.getTransactions();
+  if (profitDelta !== 0) {
+    tx.push({
+      id: Storage.generateId(),
+      type: profitDelta > 0 ? 'income' : 'expense',
+      amount: Math.abs(profitDelta),
+      bank: raw.bank || prev.bank || '',
+      category: 'Проєкт',
+      description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
+      date: Utils.today(),
+      status: 'done',
+      source: 'project_profit_taken',
+      projectId: id,
+    });
+  }
+  if (prepayDelta > 0) {
+    tx.push({
+      id: Storage.generateId(),
+      type: 'income',
+      amount: prepayDelta,
+      bank: raw.bank || prev.bank || '',
+      category: 'Передоплата',
+      description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
+      date: Utils.today(),
+      status: 'done',
+      source: 'project_prepayment',
+      projectId: id,
+    });
+  }
+  Storage.saveTransactions(tx);
+  refreshAll();
+}
+
+document.getElementById('project-prepayment')?.addEventListener('input', debounce(() => syncLive('prepayment'), 500));
+document.getElementById('project-profit-taken')?.addEventListener('input', debounce(() => syncLive('profitTaken'), 500));
