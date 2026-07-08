@@ -157,7 +157,7 @@ const Storage = {
     this._suppressBackups = true;
     Object.entries(nextData).forEach(([key, value]) => this.set(key, value));
     if (payload.financeSettings) this.saveFinanceSettings(payload.financeSettings);
-    ['crm_migrated_v11', 'crm_migrated_v12', 'crm_migrated_v13', 'crm_migrated_v14'].forEach(key => localStorage.removeItem(key));
+    ['crm_migrated_v11', 'crm_migrated_v12', 'crm_migrated_v13', 'crm_migrated_v14', 'crm_migrated_v15'].forEach(key => localStorage.removeItem(key));
     this.migrate();
     this._suppressBackups = false;
     this.afterSave();
@@ -277,6 +277,18 @@ const Storage = {
         bank: normalizeBankField(s.bank),
       })));
       localStorage.setItem('crm_migrated_v14', '1');
+    }
+
+    if (!localStorage.getItem('crm_migrated_v15')) {
+      const cutoff = new Date('2026-07-01');
+      this.saveTransactions(this.getTransactions().map(t => {
+        if (t.type === 'income' && !t.incomeStatus) {
+          const d = new Date(t.date || t.plannedDate || '');
+          if (d < cutoff) return { ...t, incomeStatus: 'earned' };
+        }
+        return t;
+      }));
+      localStorage.setItem('crm_migrated_v15', '1');
     }
   },
 };
@@ -508,6 +520,7 @@ const Calc = {
         const key = Utils.getMonthKey(t.date || t.plannedDate);
         if (key !== monthKey) return false;
         const isProjectSource = t.source && String(t.source).startsWith('project_');
+        if (t.type === 'income' && !isProjectSource && t.incomeStatus === 'incoming') return false;
         return t.type === 'income' && !isProjectSource;
       })
       .reduce((sum, t) => sum + Calc.bankAmountToUah(t.amount, t.bank), 0);

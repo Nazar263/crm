@@ -36,11 +36,11 @@ const Savings = {
       return;
     }
 
-    tbody.innerHTML = filtered.map(s => {
+    tbody.innerHTML = filtered.map((s, i) => {
       const pct = Calc.savingsProgress(s.amount, s.goal);
       const label = s.name || Banks.label(s.bank) || '—';
       return `
-        <tr>
+        <tr class="anim-row" style="animation-delay:${i * 30}ms">
           <td>${Utils.escHtml(label)}</td>
           <td>${bankBadge(s.bank)}</td>
           <td style="color:var(--accent-green);font-weight:600">${Utils.formatMoney(s.amount)}</td>

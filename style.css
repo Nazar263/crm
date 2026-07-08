@@ -3,6 +3,74 @@
    Premium Dark Workspace
    ============================================= */
 
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes chartReveal {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes toastSpring {
+  0%   { opacity: 0; transform: translateX(120%); }
+  60%  { opacity: 1; transform: translateX(-8px); }
+  80%  { transform: translateX(4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes modalBounce {
+  0%   { opacity: 0; transform: translateY(30px) scale(0.92); }
+  55%  { opacity: 1; transform: translateY(-6px) scale(1.01); }
+  75%  { transform: translateY(2px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes modalOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.93) translateY(12px); }
+}
+
+@keyframes navGlow {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 rgba(96,165,250,0); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 0 12px rgba(96,165,250,0.12); }
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+@keyframes progressFill {
+  from { width: 0; }
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
+
+.anim-stagger {
+  animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-row {
+  animation: rowIn 0.32s ease both;
+}
+
+.anim-chart {
+  animation: chartReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 :root {
   --bg-base: #070a0f;
   --bg-surface: #0d1118;
@@ -103,6 +171,7 @@ body {
   color: white;
   flex-shrink: 0;
   box-shadow: 0 12px 28px rgba(37, 99, 235, 0.25);
+  animation: logoFloat 3s ease-in-out infinite;
 }
 
 .logo-text {
@@ -159,7 +228,7 @@ body {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(20, 184, 166, 0.11));
   color: var(--accent-blue);
   border-color: rgba(96, 165, 250, 0.24);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  animation: navGlow 2.5s ease-in-out infinite;
 }
 
 .nav-item.active::before {
@@ -183,6 +252,11 @@ body {
   border-radius: 20px;
   min-width: 22px;
   text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.nav-badge:not(:empty) {
+  animation: badgePulse 2s ease-in-out infinite;
 }
 
 .sidebar-footer {
@@ -346,8 +420,12 @@ body {
 .stat-card:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-strong);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md), 0 0 20px rgba(96, 165, 250, 0.06);
+}
+
+.stat-card--clickable:hover {
+  box-shadow: var(--shadow-md), 0 0 24px rgba(250, 204, 21, 0.1);
 }
 
 .stat-card--clickable {
@@ -861,6 +939,17 @@ body {
   box-shadow: 0 16px 34px rgba(37, 99, 235, 0.30);
 }
 
+.btn-primary:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.btn-ghost:active, .btn-danger:active, .btn-icon:active {
+  transform: scale(0.95);
+  transition: transform 0.1s;
+}
+
 .btn-ghost {
   background: rgba(255,255,255,0.025);
   color: var(--text-secondary);
@@ -922,6 +1011,10 @@ body {
   animation: fadeIn 0.2s ease;
 }
 
+.modal-overlay.closing {
+  animation: fadeIn 0.2s ease reverse forwards;
+}
+
 .modal {
   background: #101722;
   border: 1px solid var(--border-strong);
@@ -931,7 +1024,11 @@ body {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.62);
-  animation: slideUp 0.25s ease;
+  animation: modalBounce 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.modal-overlay.closing .modal {
+  animation: modalOut 0.22s ease forwards;
 }
 
 .modal--sm { max-width: 420px; }
@@ -1184,7 +1281,8 @@ body {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-green), var(--accent-teal));
   border-radius: 999px;
-  transition: width 0.3s;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: progressFill 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .progress-label {
@@ -1242,7 +1340,7 @@ select.form-input option {
   align-items: center;
   gap: 10px;
   min-width: 260px;
-  animation: toastIn 0.3s ease;
+  animation: toastSpring 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   box-shadow: var(--shadow-md);
 }
 

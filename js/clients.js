@@ -37,10 +37,10 @@ const Clients = {
       return;
     }
 
-    tbody.innerHTML = filtered.map(c => {
+    tbody.innerHTML = filtered.map((c, i) => {
       const stats = Calc.clientStats(c.id);
       return `
-        <tr>
+        <tr class="anim-row" style="animation-delay:${i * 30}ms">
           <td><strong>${Utils.escHtml(c.name)}</strong></td>
           <td>${c.telegram ? `<a href="https://t.me/${c.telegram.replace('@', '')}" target="_blank" class="link">${Utils.escHtml(c.telegram)}</a>` : '—'}</td>
           <td>${sourceBadge(c.source)}</td>

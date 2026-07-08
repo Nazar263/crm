@@ -38,10 +38,10 @@ const Debts = {
       return;
     }
 
-    tbody.innerHTML = filtered.map(d => {
+    tbody.innerHTML = filtered.map((d, i) => {
       const color = d.type === 'owed_to_me' ? 'var(--accent-green)' : 'var(--accent-orange)';
       return `
-        <tr>
+        <tr class="anim-row" style="animation-delay:${i * 30}ms">
           <td>${debtTypeBadge(d.type)}</td>
           <td>${Utils.escHtml(d.person || '—')}</td>
           <td style="color:${color};font-weight:600">${Utils.formatMoney(d.amount)}</td>

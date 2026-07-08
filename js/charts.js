@@ -163,6 +163,8 @@ const Charts = {
   renderFinance(transactions) {
     const monthsData = this.last12Months();
     transactions.forEach(t => {
+      const isProjectSource = t.source && String(t.source).startsWith('project_');
+      if (isProjectSource) return;
       const key = Utils.getMonthKey(t.date || t.plannedDate);
       if (key && monthsData[key]) {
         if (t.type === 'income') monthsData[key].financeIn += Calc.bankAmountToUah(t.amount, t.bank);
@@ -191,16 +193,16 @@ const Charts = {
     });
   },
 
-  renderMonthlyIncome(canvasId, instanceKey, transactions) {
+  renderMonthlyIncome(canvasId, instanceKey, transactions, earnedOnly = false) {
     const el = document.getElementById(canvasId);
     if (!el) return;
 
     const monthsData = this.last12Months();
     transactions.forEach(t => {
       const key = Utils.getMonthKey(t.date || t.plannedDate);
-      // Only include manual finance incomes here — ignore project-created transactions
       const isProjectSource = t.source && String(t.source).startsWith('project_');
       if (t.type === 'income' && !isProjectSource && key && monthsData[key]) {
+        if (earnedOnly && t.incomeStatus === 'incoming') return;
         monthsData[key].financeIn += Calc.bankAmountToUah(t.amount, t.bank);
       }
     });
@@ -436,5 +438,12 @@ const Charts = {
     this.renderSavings('chart-savings-goals', 'savingsGoals');
     this.renderSavingsSummary('chart-savings-summary', 'savingsSummary');
     this.renderSources();
+
+    document.querySelectorAll('.chart-card').forEach((card, i) => {
+      card.classList.remove('anim-chart');
+      void card.offsetWidth;
+      card.style.animationDelay = `${i * 60}ms`;
+      card.classList.add('anim-chart');
+    });
   },
 };

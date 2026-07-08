@@ -120,10 +120,10 @@ const LeadGen = {
       return;
     }
 
-    tbody.innerHTML = leads.map(lead => this.renderRow(lead)).join('');
+    tbody.innerHTML = leads.map((lead, i) => this.renderRow(lead, i)).join('');
   },
 
-  renderRow(lead) {
+  renderRow(lead, i = 0) {
     const phone = this.normalizePhone(lead.phone);
     const phoneUrl = this.phoneForUrl(lead.phone);
     const telegram = String(lead.telegram || '').replace(/^@/, '');
@@ -132,7 +132,7 @@ const LeadGen = {
     ).join('');
 
     return `
-      <tr data-lead-id="${Utils.escHtml(lead.id)}">
+      <tr class="anim-row" style="animation-delay:${i * 25}ms" data-lead-id="${Utils.escHtml(lead.id)}">
         <td><strong>${Utils.escHtml(lead.name)}</strong></td>
         <td>${Utils.escHtml(lead.address || '—')}</td>
         <td>${phone ? `<button class="btn btn-ghost btn-copy-phone" data-phone="${Utils.escHtml(phone)}">Копіювати</button>` : '<span style="color:var(--text-secondary)">—</span>'}</td>

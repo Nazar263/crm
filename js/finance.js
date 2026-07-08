@@ -6,7 +6,7 @@ const Finance = {
   render() {
     this.renderConverter();
     this.renderSummary();
-    Charts.renderMonthlyIncome('chart-finance-income', 'financeIncome', Storage.getTransactions());
+    Charts.renderMonthlyIncome('chart-finance-income', 'financeIncome', Storage.getTransactions(), true);
     Charts.renderBankBalances('chart-finance-banks', 'financeBanks');
     this.renderTable();
   },
@@ -71,13 +71,13 @@ const Finance = {
       return;
     }
 
-    tbody.innerHTML = filtered.map(t => {
-      if (t.type === 'transfer') return this.renderTransferRow(t);
+    tbody.innerHTML = filtered.map((t, i) => {
+      if (t.type === 'transfer') return this.renderTransferRow(t, i);
       const amountColor = t.type === 'income' ? 'var(--accent-green)' : 'var(--accent-orange)';
       const sign = t.type === 'income' ? '+' : '−';
       const week = this.weekMarker(t.date || t.plannedDate);
       return `
-        <tr class="finance-row ${week.className}">
+        <tr>
           <td>${financeTypeBadge(t.type)}</td>
           <td style="color:${amountColor};font-weight:600">${sign}${this.formatBankAmount(t.amount, t.bank)}</td>
           <td>${bankBadge(t.bank)}</td>
@@ -101,7 +101,7 @@ const Finance = {
   renderTransferRow(t) {
     const week = this.weekMarker(t.date || t.plannedDate);
     return `
-      <tr class="finance-row ${week.className}">
+      <tr>
         <td><span class="badge badge--blue">Конвертація</span></td>
         <td style="color:var(--accent-blue);font-weight:600">${this.formatBankAmount(t.amount, t.bank)} → ${this.formatBankAmount(t.targetAmount ?? t.amount, t.toBank)}</td>
         <td>${bankBadge(t.bank)} → ${bankBadge(t.toBank)}</td>
@@ -134,6 +134,8 @@ const Finance = {
     document.getElementById('transaction-category').value = '';
     document.getElementById('transaction-description').value = '';
     document.getElementById('transaction-date').value = Utils.today();
+    document.getElementById('transaction-income-status').value = 'earned';
+    this._toggleIncomeStatus(type);
     document.getElementById('modal-finance-title').textContent = type === 'income' ? 'Новий дохід' : 'Нова витрата';
     openModal('modal-finance');
   },
@@ -148,6 +150,8 @@ const Finance = {
     document.getElementById('transaction-category').value = t.category || '';
     document.getElementById('transaction-description').value = t.description || '';
     document.getElementById('transaction-date').value = t.date || t.plannedDate || '';
+    document.getElementById('transaction-income-status').value = t.incomeStatus || 'earned';
+    this._toggleIncomeStatus(t.type);
     document.getElementById('modal-finance-title').textContent = 'Редагувати транзакцію';
     openModal('modal-finance');
   },
@@ -160,12 +164,14 @@ const Finance = {
     const category = document.getElementById('transaction-category').value.trim();
     const description = document.getElementById('transaction-description').value.trim();
     const date = document.getElementById('transaction-date').value;
+    const incomeStatus = type === 'income' ? document.getElementById('transaction-income-status').value : undefined;
 
     if (!amount) { showToast('Введіть суму', 'error'); return; }
     if (!bank) { showToast('Оберіть банк', 'error'); return; }
 
     const transactions = Storage.getTransactions();
     const raw = { type, amount, bank, category, description, date, status: 'done' };
+    if (incomeStatus) raw.incomeStatus = incomeStatus;
 
     if (id) {
       const idx = transactions.findIndex(t => t.id === id);
@@ -189,6 +195,11 @@ const Finance = {
       usdRate: document.getElementById('finance-usd-rate')?.value,
       eurRate: document.getElementById('finance-eur-rate')?.value,
     });
+  },
+
+  _toggleIncomeStatus(type) {
+    const group = document.getElementById('income-status-group');
+    if (group) group.style.display = type === 'income' ? '' : 'none';
   },
 
   convertAmount(amount, fromBank, toBank) {
@@ -248,6 +259,7 @@ document.getElementById('btn-add-income').addEventListener('click', () => Financ
 document.getElementById('btn-add-expense').addEventListener('click', () => Finance.openCreate('expense'));
 document.getElementById('btn-save-finance').addEventListener('click', () => Finance.save());
 document.getElementById('btn-save-conversion')?.addEventListener('click', () => Finance.saveConversion());
+document.getElementById('transaction-type').addEventListener('change', (e) => Finance._toggleIncomeStatus(e.target.value));
 ['finance-usd-rate', 'finance-eur-rate'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', () => {
     Finance.saveRates();

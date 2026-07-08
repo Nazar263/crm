@@ -408,13 +408,13 @@ const calc = Calc.project(raw);
       return;
     }
 
-    tbody.innerHTML = filtered.map(p => {
+    tbody.innerHTML = filtered.map((p, i) => {
       const client = clients.find(c => c.id === p.clientId);
       const clientName = client ? client.name : p.clientName || '—';
       const calc = Calc.project(p);
       const deadline = this.deadlineInfo(p);
       return `
-        <tr>
+        <tr class="anim-row" style="animation-delay:${i * 30}ms">
           <td><strong>${Utils.escHtml(p.name)}</strong></td>
           <td>${typeBadge(p.type)}</td>
           <td>${Utils.escHtml(clientName)}</td>
@@ -459,7 +459,7 @@ const calc = Calc.project(raw);
       return;
     }
 
-    tbody.innerHTML = filtered.map(p => {
+    tbody.innerHTML = filtered.map((p, i) => {
       const client = clients.find(c => c.id === p.clientId);
       const clientName = client ? client.name : p.clientName || '—';
       const clientTelegram = p.clientTelegram || client?.telegram || '';
@@ -467,7 +467,7 @@ const calc = Calc.project(raw);
       const specialistName = specialist ? specialist.name : '—';
       const calc = Calc.project(p);
       return `
-        <tr>
+        <tr class="anim-row" style="animation-delay:${i * 30}ms">
           <td><strong>${Utils.escHtml(p.name)}</strong></td>
           <td>${typeBadge(p.type)}</td>
           <td>

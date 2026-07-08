@@ -23,11 +23,11 @@ const Specialists = {
       return;
     }
 
-    grid.innerHTML = filtered.map(d => {
+    grid.innerHTML = filtered.map((d, i) => {
       const stats = Calc.specialistStats(d.id);
       const initials = d.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
       return `
-        <div class="developer-card">
+        <div class="developer-card anim-stagger" style="animation-delay:${i * 60}ms">
           <div class="dev-card-header">
             <div class="dev-avatar">${initials}</div>
             <div>

@@ -3,6 +3,26 @@ const Utils = {
     const num = Number(n) || 0;
     return '₴' + num.toLocaleString('uk-UA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
+
+  animateCounter(el, target, duration = 600) {
+    const start = performance.now();
+    const from = 0;
+    const tick = (now) => {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const current = Math.round(from + (target - from) * ease);
+      el.textContent = Utils.formatMoney(current);
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  },
+
+  stagger(selector, delayMs = 50) {
+    const els = document.querySelectorAll(selector);
+    els.forEach((el, i) => {
+      el.style.animationDelay = `${i * delayMs}ms`;
+    });
+  },
   formatDate(str) {
     if (!str) return '—';
     const d = new Date(str);
@@ -100,8 +120,12 @@ function openModal(id) {
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-  document.body.style.overflow = '';
+  const overlay = document.getElementById(id);
+  overlay.classList.add('closing');
+  setTimeout(() => {
+    overlay.classList.remove('open', 'closing');
+    document.body.style.overflow = '';
+  }, 220);
 }
 
 function statusBadge(status) {
