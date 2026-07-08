@@ -136,7 +136,7 @@ const Charts = {
       if (!key || !monthsData[key]) return;
 
       const calc = Calc.project(p);
-      const historicIncome = Number(calc.receivedProfit) + Number(calc.profitTaken || 0);
+      const historicIncome = Number(calc.myIncome);
       if (historicIncome > 0) monthsData[key].income += historicIncome;
     });
 

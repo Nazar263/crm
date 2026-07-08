@@ -502,7 +502,7 @@ const Calc = {
       const endDate = endDateStr ? new Date(endDateStr) : null;
       if (!endDate || endDate >= cutoff) return;
       const c = Calc.project(p);
-      totalProfit += Number(c.receivedProfit) + Number(c.profitTaken || 0);
+      totalProfit += Number(c.myIncome);
     });
 
     all.forEach(p => {

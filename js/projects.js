@@ -162,6 +162,17 @@ const Projects = {
     };
   },
 
+  transactionDate(raw, source) {
+    const projectPaymentDate = Calc.projectPaymentDate(raw);
+    if (source === 'project_prepayment') {
+      return projectPaymentDate || Utils.today();
+    }
+    if (source === 'project_profit_taken') {
+      return raw.endDate || raw.finishDate || projectPaymentDate || Utils.today();
+    }
+    return Utils.today();
+  },
+
   save() {
     const id = document.getElementById('project-id').value;
     const fromCompleted = !!id && document.getElementById('project-from-completed').value === '1';
@@ -285,7 +296,7 @@ const calc = Calc.project(raw);
           bank: raw.bank || '',
           category: 'Передоплата',
           description: `Передоплата від клієнта: ${raw.clientName}`,
-          date: Utils.today(),
+          date: this.transactionDate(raw, 'project_prepayment'),
           status: 'done',
           source: 'project_prepayment',
           projectId,
@@ -300,7 +311,7 @@ const calc = Calc.project(raw);
           bank: raw.bank || '',
           category: 'Проєкт',
           description: `Забрав із проєкту: ${raw.name}`,
-          date: Utils.today(),
+          date: this.transactionDate(raw, 'project_profit_taken'),
           status: 'done',
           source: 'project_profit_taken',
           projectId,
@@ -547,7 +558,7 @@ function syncLive(field) {
         bank: raw.bank || prev.bank || '',
         category: 'Проєкт',
         description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
-        date: Utils.today(),
+        date: Projects.transactionDate(raw, 'project_profit_taken'),
         status: 'done',
         source: 'project_profit_taken',
         projectId: id,
@@ -562,7 +573,7 @@ function syncLive(field) {
         bank: raw.bank || prev.bank || '',
         category: 'Передоплата',
         description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
-        date: Utils.today(),
+        date: Projects.transactionDate(raw, 'project_prepayment'),
         status: 'done',
         source: 'project_prepayment',
         projectId: id,
