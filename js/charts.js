@@ -110,9 +110,9 @@ const Charts = {
     const transactions = Storage.getTransactions();
     const projectIdsWithHistory = new Set();
 
-    // Sum project-related profit transactions first (these are authoritative)
+    // Sum project-related transactions first (these are authoritative)
     transactions.forEach(t => {
-      if (t.source !== 'project_profit_taken') return;
+      if (!t.source || !String(t.source).startsWith('project_')) return;
       const key = Utils.getMonthKey(t.date || t.plannedDate);
       if (!key || !monthsData[key]) return;
       const amount = Number(t.amount) || 0;
@@ -120,27 +120,24 @@ const Charts = {
       if (t.projectId) projectIdsWithHistory.add(t.projectId);
     });
 
-    // Cutoff: projects completed before this date should be shown by their completion month
-    const cutoff = new Date('2026-07-01');
+    // Cutoff: projects completed before 8 July 2026 should be shown by their completion month.
+    // From 8 July 2026 onward we use live project payments / prepayments by entry date.
+    const cutoff = new Date('2026-07-08');
     const projects = [...Storage.getProjects(), ...Storage.getCompleted()];
     projects.forEach(p => {
-      const profitTaken = Number(p.profitTaken) || 0;
-      if (!profitTaken) return;
-
-      // If we already have transactions for this project, skip (transactions are authoritative)
+      // Only attribute older completed projects by their completion month if we do not have explicit project transactions.
       if (projectIdsWithHistory.has(p.id)) return;
 
       const endDateStr = Calc.projectEndDate(p);
       const endDate = endDateStr ? new Date(endDateStr) : null;
+      if (!endDate || endDate >= cutoff) return;
 
-      // If project was completed before cutoff, attribute its taken profit to completion month
-      if (endDate && endDate < cutoff) {
-        const key = Utils.getMonthKey(endDateStr);
-        if (key && monthsData[key]) monthsData[key].income += profitTaken;
-      }
-      // Otherwise: do not attribute historic sums here — recent/active changes should be
-      // recorded as `project_profit_taken` transactions (created on save) so they'll
-      // appear in the month when the change happened.
+      const key = Utils.getMonthKey(endDateStr);
+      if (!key || !monthsData[key]) return;
+
+      const calc = Calc.project(p);
+      const historicIncome = Number(calc.receivedProfit) + Number(calc.profitTaken || 0);
+      if (historicIncome > 0) monthsData[key].income += historicIncome;
     });
 
     const labels = Object.keys(monthsData).map(k => Utils.getMonthLabel(k));

@@ -34,6 +34,7 @@ const Finance = {
 
     return transactions
       .filter(t => {
+        if (t.hidden) return false;
         const bankLabel = Banks.label(Banks.normalize(t.bank) || t.bank).toLowerCase();
         const matchSearch = (t.description || '').toLowerCase().includes(search) ||
           (t.category || '').toLowerCase().includes(search) ||

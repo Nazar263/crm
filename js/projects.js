@@ -182,41 +182,44 @@ const calc = Calc.project(raw);
         completed[idx] = { ...completed[idx], ...raw };
         Storage.saveCompleted(completed);
         showToast('Проєкт оновлено');
-        // Sync financial deltas (profit taken / prepayment)
+
+        const prevCalc = Calc.project(prev);
+        const rawCalc = Calc.project(raw);
         const profitDelta = Number(raw.profitTaken) - Number(prev.profitTaken || 0);
-        const prepayDelta = Number(raw.prepayment) - Number(prev.prepayment || 0);
-        if (profitDelta !== 0 || prepayDelta !== 0) {
-          const tx = Storage.getTransactions();
-          if (profitDelta !== 0) {
-            tx.push({
-              id: Storage.generateId(),
-              type: profitDelta > 0 ? 'income' : 'expense',
-              amount: Math.abs(profitDelta),
-              bank: raw.bank || prev.bank || '',
-              category: 'Проєкт',
-              description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
-              date: Utils.today(),
-              status: 'done',
-              source: 'project_profit_taken',
-              projectId: id,
-            });
-          }
-          if (prepayDelta > 0) {
-            tx.push({
-              id: Storage.generateId(),
-              type: 'income',
-              amount: prepayDelta,
-              bank: raw.bank || prev.bank || '',
-              category: 'Передоплата',
-              description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
-              date: Utils.today(),
-              status: 'done',
-              source: 'project_prepayment',
-              projectId: id,
-            });
-          }
-          Storage.saveTransactions(tx);
+        const prepayDelta = Number(rawCalc.receivedProfit) - Number(prevCalc.receivedProfit);
+        const tx = Storage.getTransactions();
+
+        if (profitDelta !== 0) {
+          tx.push({
+            id: Storage.generateId(),
+            hidden: true,
+            type: profitDelta > 0 ? 'income' : 'expense',
+            amount: Math.abs(profitDelta),
+            bank: raw.bank || prev.bank || '',
+            category: 'Проєкт',
+            description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
+            date: Utils.today(),
+            status: 'done',
+            source: 'project_profit_taken',
+            projectId: id,
+          });
         }
+        if (prepayDelta !== 0) {
+          tx.push({
+            id: Storage.generateId(),
+            hidden: true,
+            type: prepayDelta > 0 ? 'income' : 'expense',
+            amount: Math.abs(prepayDelta),
+            bank: raw.bank || prev.bank || '',
+            category: 'Передоплата',
+            description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
+            date: Utils.today(),
+            status: 'done',
+            source: 'project_prepayment',
+            projectId: id,
+          });
+        }
+        if (profitDelta !== 0 || prepayDelta !== 0) Storage.saveTransactions(tx);
       }
     } else if (id) {
       const active = Storage.getProjects();
@@ -226,46 +229,84 @@ const calc = Calc.project(raw);
         active[idx] = { ...active[idx], ...raw };
         Storage.saveProjects(active);
         showToast('Проєкт оновлено');
-        // Sync financial deltas (profit taken / prepayment)
+
+        const prevCalc = Calc.project(prev);
+        const rawCalc = Calc.project(raw);
         const profitDelta = Number(raw.profitTaken) - Number(prev.profitTaken || 0);
-        const prepayDelta = Number(raw.prepayment) - Number(prev.prepayment || 0);
-        if (profitDelta !== 0 || prepayDelta !== 0) {
-          const tx = Storage.getTransactions();
-          if (profitDelta !== 0) {
-            tx.push({
-              id: Storage.generateId(),
-              type: profitDelta > 0 ? 'income' : 'expense',
-              amount: Math.abs(profitDelta),
-              bank: raw.bank || prev.bank || '',
-              category: 'Проєкт',
-              description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
-              date: Utils.today(),
-              status: 'done',
-              source: 'project_profit_taken',
-              projectId: id,
-            });
-          }
-          if (prepayDelta > 0) {
-            tx.push({
-              id: Storage.generateId(),
-              type: 'income',
-              amount: prepayDelta,
-              bank: raw.bank || prev.bank || '',
-              category: 'Передоплата',
-              description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
-              date: Utils.today(),
-              status: 'done',
-              source: 'project_prepayment',
-              projectId: id,
-            });
-          }
-          Storage.saveTransactions(tx);
+        const prepayDelta = Number(rawCalc.receivedProfit) - Number(prevCalc.receivedProfit);
+        const tx = Storage.getTransactions();
+
+        if (profitDelta !== 0) {
+          tx.push({
+            id: Storage.generateId(),
+            hidden: true,
+            type: profitDelta > 0 ? 'income' : 'expense',
+            amount: Math.abs(profitDelta),
+            bank: raw.bank || prev.bank || '',
+            category: 'Проєкт',
+            description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
+            date: Utils.today(),
+            status: 'done',
+            source: 'project_profit_taken',
+            projectId: id,
+          });
         }
+        if (prepayDelta !== 0) {
+          tx.push({
+            id: Storage.generateId(),
+            hidden: true,
+            type: prepayDelta > 0 ? 'income' : 'expense',
+            amount: Math.abs(prepayDelta),
+            bank: raw.bank || prev.bank || '',
+            category: 'Передоплата',
+            description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
+            date: Utils.today(),
+            status: 'done',
+            source: 'project_prepayment',
+            projectId: id,
+          });
+        }
+        if (profitDelta !== 0 || prepayDelta !== 0) Storage.saveTransactions(tx);
       }
     } else {
       const active = Storage.getProjects();
-      active.push({ id: Storage.generateId(), createdAt: new Date().toISOString(), ...raw });
+      const projectId = Storage.generateId();
+      active.push({ id: projectId, createdAt: new Date().toISOString(), ...raw });
       Storage.saveProjects(active);
+
+      const rawCalc = Calc.project(raw);
+      const tx = Storage.getTransactions();
+      if (rawCalc.receivedProfit > 0) {
+        tx.push({
+          id: Storage.generateId(),
+          hidden: true,
+          type: 'income',
+          amount: rawCalc.receivedProfit,
+          bank: raw.bank || '',
+          category: 'Передоплата',
+          description: `Передоплата від клієнта: ${raw.clientName}`,
+          date: Utils.today(),
+          status: 'done',
+          source: 'project_prepayment',
+          projectId,
+        });
+      }
+      if (raw.profitTaken > 0) {
+        tx.push({
+          id: Storage.generateId(),
+          hidden: true,
+          type: 'income',
+          amount: raw.profitTaken,
+          bank: raw.bank || '',
+          category: 'Проєкт',
+          description: `Забрав із проєкту: ${raw.name}`,
+          date: Utils.today(),
+          status: 'done',
+          source: 'project_profit_taken',
+          projectId,
+        });
+      }
+      if (rawCalc.receivedProfit > 0 || raw.profitTaken > 0) Storage.saveTransactions(tx);
       showToast('Проєкт створено');
     }
 
@@ -484,46 +525,53 @@ function syncLive(field) {
 
   const prev = list[idx];
   const raw = Projects.buildRawFromForm();
+  const prevCalc = Calc.project(prev);
+  const rawCalc = Calc.project(raw);
 
   const profitDelta = Number(raw.profitTaken) - Number(prev.profitTaken || 0);
-  const prepayDelta = Number(raw.prepayment) - Number(prev.prepayment || 0);
+  const prepayDelta = Number(rawCalc.receivedProfit) - Number(prevCalc.receivedProfit);
 
   // update project values in-place so UI reflects immediately
   list[idx] = { ...prev, ...raw };
   if (fromCompleted) Storage.saveCompleted(list); else Storage.saveProjects(list);
 
-  if (profitDelta === 0 && prepayDelta === 0) { refreshAll(); return; }
+  if (profitDelta !== 0 || prepayDelta !== 0) {
+    const tx = Storage.getTransactions();
 
-  const tx = Storage.getTransactions();
-  if (profitDelta !== 0) {
-    tx.push({
-      id: Storage.generateId(),
-      type: profitDelta > 0 ? 'income' : 'expense',
-      amount: Math.abs(profitDelta),
-      bank: raw.bank || prev.bank || '',
-      category: 'Проєкт',
-      description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
-      date: Utils.today(),
-      status: 'done',
-      source: 'project_profit_taken',
-      projectId: id,
-    });
+    if (profitDelta !== 0) {
+      tx.push({
+        id: Storage.generateId(),
+        hidden: true,
+        type: profitDelta > 0 ? 'income' : 'expense',
+        amount: Math.abs(profitDelta),
+        bank: raw.bank || prev.bank || '',
+        category: 'Проєкт',
+        description: `Забрав із проєкту: ${raw.name || prev.name || ''}`,
+        date: Utils.today(),
+        status: 'done',
+        source: 'project_profit_taken',
+        projectId: id,
+      });
+    }
+    if (prepayDelta !== 0) {
+      tx.push({
+        id: Storage.generateId(),
+        hidden: true,
+        type: prepayDelta > 0 ? 'income' : 'expense',
+        amount: Math.abs(prepayDelta),
+        bank: raw.bank || prev.bank || '',
+        category: 'Передоплата',
+        description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
+        date: Utils.today(),
+        status: 'done',
+        source: 'project_prepayment',
+        projectId: id,
+      });
+    }
+
+    Storage.saveTransactions(tx);
   }
-  if (prepayDelta > 0) {
-    tx.push({
-      id: Storage.generateId(),
-      type: 'income',
-      amount: prepayDelta,
-      bank: raw.bank || prev.bank || '',
-      category: 'Передоплата',
-      description: `Передоплата від клієнта: ${raw.clientName || prev.clientName || ''}`,
-      date: Utils.today(),
-      status: 'done',
-      source: 'project_prepayment',
-      projectId: id,
-    });
-  }
-  Storage.saveTransactions(tx);
+
   refreshAll();
 }
 

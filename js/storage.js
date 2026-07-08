@@ -424,6 +424,7 @@ const Calc = {
   bankBalances(transactions = Storage.getTransactions()) {
     const balances = { mono: 0, privat: 0, cash: 0, cash_usd: 0, cash_eur: 0 };
     transactions.forEach(t => {
+      if (t.hidden) return;
       const bank = Storage.normalizeBank(t.bank);
       if (!bank) return;
       const amount = this.bankAmountToUah(t.amount, bank);
@@ -480,11 +481,28 @@ const Calc = {
 
     let totalBudget = 0, totalProfit = 0;
     let clientDebts = 0, specialistDebts = 0, partnerDebts = 0;
+    const projectIdsWithHistory = new Set();
+
+    const projectTransactions = transactions.filter(t => t.source && String(t.source).startsWith('project_'));
+    projectTransactions.forEach(t => {
+      const amount = Number(t.amount) || 0;
+      totalProfit += t.type === 'expense' ? -amount : amount;
+      if (t.projectId) projectIdsWithHistory.add(t.projectId);
+    });
 
     all.forEach(p => {
       const c = Calc.project(p);
       totalBudget += c.paidAmount;
-      totalProfit += c.receivedProfit;
+    });
+
+    const cutoff = new Date('2026-07-08');
+    all.forEach(p => {
+      if (projectIdsWithHistory.has(p.id)) return;
+      const endDateStr = Calc.projectEndDate(p);
+      const endDate = endDateStr ? new Date(endDateStr) : null;
+      if (!endDate || endDate >= cutoff) return;
+      const c = Calc.project(p);
+      totalProfit += Number(c.receivedProfit) + Number(c.profitTaken || 0);
     });
 
     all.forEach(p => {
