@@ -125,7 +125,7 @@ const Partners = {
       this.render();
       updateBadges();
       Projects.populatePartnerSelect();
-      showToast('Партнера видалено');
+      showToast('Партнера видалено.');
     });
   },
 };
