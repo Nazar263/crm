@@ -280,13 +280,11 @@ const Storage = {
     }
 
     if (!localStorage.getItem('crm_migrated_v15')) {
-<<<<<<< HEAD
       const cutoff = new Date('2026-07-01');
       this.saveTransactions(this.getTransactions().map(t => {
         if (t.type === 'income' && !t.incomeStatus) {
           const d = new Date(t.date || t.plannedDate || '');
           if (d < cutoff) return { ...t, incomeStatus: 'earned' };
-
         }
         return t;
       }));
@@ -522,13 +520,8 @@ const Calc = {
         const key = Utils.getMonthKey(t.date || t.plannedDate);
         if (key !== monthKey) return false;
         const isProjectSource = t.source && String(t.source).startsWith('project_');
-<<<<<<< HEAD
         if (t.type === 'income' && !isProjectSource && t.incomeStatus === 'incoming') return false;
         return t.type === 'income' && !isProjectSource;
-=======
-        const isEarned = t.income_status === 'earned' || t.income_status === undefined;
-        return t.type === 'income' && !isProjectSource && isEarned;
->>>>>>> c121be7 (fix)
       })
       .reduce((sum, t) => sum + Calc.bankAmountToUah(t.amount, t.bank), 0);
 

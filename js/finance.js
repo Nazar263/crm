@@ -135,10 +135,9 @@ const Finance = {
     document.getElementById('transaction-description').value = '';
     document.getElementById('transaction-date').value = Utils.today();
     document.getElementById('transaction-income-status').value = 'earned';
-<<<<<<< HEAD
     this._toggleIncomeStatus(type);
-=======
-
+    openModal('modal-finance');
+  },
 
   openEdit(id) {
     const t = Storage.getTransactions().find(x => x.id === id);
@@ -150,20 +149,10 @@ const Finance = {
     document.getElementById('transaction-category').value = t.category || '';
     document.getElementById('transaction-description').value = t.description || '';
     document.getElementById('transaction-date').value = t.date || t.plannedDate || '';
-<<<<<<< HEAD
     document.getElementById('transaction-income-status').value = t.incomeStatus || 'earned';
     this._toggleIncomeStatus(t.type);
-=======
-    document.getElementById('transaction-income-status').value = t.income_status || 'earned';
-    this.toggleIncomeStatus(t.type);
->>>>>>> c121be7 (fix)
     document.getElementById('modal-finance-title').textContent = 'Редагувати транзакцію';
     openModal('modal-finance');
-  },
-
-  toggleIncomeStatus(type) {
-    const group = document.getElementById('income-status-group');
-    if (group) group.style.display = type === 'income' ? '' : 'none';
   },
 
   save() {
@@ -174,22 +163,14 @@ const Finance = {
     const category = document.getElementById('transaction-category').value.trim();
     const description = document.getElementById('transaction-description').value.trim();
     const date = document.getElementById('transaction-date').value;
-<<<<<<< HEAD
     const incomeStatus = type === 'income' ? document.getElementById('transaction-income-status').value : undefined;
-=======
-    const incomeStatus = document.getElementById('transaction-income-status').value;
->>>>>>> c121be7 (fix)
 
     if (!amount) { showToast('Введіть суму', 'error'); return; }
     if (!bank) { showToast('Оберіть банк', 'error'); return; }
 
     const transactions = Storage.getTransactions();
-<<<<<<< HEAD
     const raw = { type, amount, bank, category, description, date, status: 'done' };
     if (incomeStatus) raw.incomeStatus = incomeStatus;
-=======
-    const raw = { type, amount, bank, category, description, date, status: 'done', income_status: type === 'income' ? incomeStatus : undefined };
->>>>>>> c121be7 (fix)
 
     if (id) {
       const idx = transactions.findIndex(t => t.id === id);
@@ -277,11 +258,7 @@ document.getElementById('btn-add-income').addEventListener('click', () => Financ
 document.getElementById('btn-add-expense').addEventListener('click', () => Finance.openCreate('expense'));
 document.getElementById('btn-save-finance').addEventListener('click', () => Finance.save());
 document.getElementById('btn-save-conversion')?.addEventListener('click', () => Finance.saveConversion());
-<<<<<<< HEAD
 document.getElementById('transaction-type').addEventListener('change', (e) => Finance._toggleIncomeStatus(e.target.value));
-=======
-document.getElementById('transaction-type')?.addEventListener('change', (e) => Finance.toggleIncomeStatus(e.target.value));
->>>>>>> c121be7 (fix)
 ['finance-usd-rate', 'finance-eur-rate'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', () => {
     Finance.saveRates();

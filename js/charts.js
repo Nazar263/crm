@@ -200,7 +200,6 @@ const Charts = {
     const monthsData = this.last12Months();
     transactions.forEach(t => {
       const key = Utils.getMonthKey(t.date || t.plannedDate);
-<<<<<<< HEAD
       const isProjectSource = t.source && String(t.source).startsWith('project_');
       if (t.type === 'income' && !isProjectSource && key && monthsData[key]) {
         if (earnedOnly && t.incomeStatus === 'incoming') return;

@@ -400,17 +400,20 @@ const calc = Calc.project(raw);
     const tbody = document.getElementById('tbody-active-projects');
     const filtered = this.filterProjects(Storage.getProjects());
     const clients = Storage.getClients();
+    const specialists = Storage.getSpecialists();
     const typeOrder = { IT: 1, Video: 2, Design: 3 };
     filtered.sort((a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99));
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="15"><div class="empty-state"><span>Немає активних проєктів</span><small>Натисніть «Новий проєкт», щоб додати</small></div></td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="16"><div class="empty-state"><span>Немає активних проєктів</span><small>Натисніть «Новий проєкт», щоб додати</small></div></td></tr>`;
       return;
     }
 
     tbody.innerHTML = filtered.map((p, i) => {
       const client = clients.find(c => c.id === p.clientId);
       const clientName = client ? client.name : p.clientName || '—';
+      const specialist = specialists.find(s => s.id === p.developerId);
+      const specialistName = specialist ? specialist.name : '—';
       const calc = Calc.project(p);
       const deadline = this.deadlineInfo(p);
       return `
@@ -423,7 +426,7 @@ const calc = Calc.project(raw);
           <td>${Utils.formatMoney(calc.budget)}</td>
           <td>${p.bank ? bankBadge(p.bank) : '<span style="color:var(--text-secondary)">—</span>'}</td>
           <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.clientDebt)}</td>
-          <td>${Utils.formatMoney(calc.specialistCost)}</td>
+          <td>${Utils.escHtml(specialistName)}</td>
           <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.specialistDebt)}</td>
           <td style="color:var(--accent-green)">${Utils.formatMoney(calc.projectProfit)}</td>
           <td style="color:var(--accent-orange)">${Utils.formatMoney(calc.partnerCommission)}</td>
